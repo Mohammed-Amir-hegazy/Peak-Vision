@@ -63,6 +63,22 @@
     color:var(--gold);
     font-weight:600;
   }
+  .eyebrow-row{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    justify-content:center;
+  }
+  .eyebrow-icon-badge{
+    display:flex;align-items:center;justify-content:center;
+    width:26px;height:26px;
+    border-radius:50%;
+    border:1px solid rgba(232,165,61,0.35);
+    background:rgba(232,165,61,0.08);
+    flex-shrink:0;
+  }
+  .eyebrow-icon-badge svg{width:13px;height:13px;color:var(--gold);}
+  .icon{width:22px;height:22px;display:inline-block;vertical-align:middle;}
 
   /* NAV */
   header{
@@ -91,7 +107,7 @@
   .nav-links a.active{color:var(--ink);}
   .nav-links a:hover{color:var(--gold-soft);}
   .btn{
-    display:inline-flex;align-items:center;justify-content:center;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
     font-family:var(--arabic);
     font-weight:700;
     font-size:15px;
@@ -102,6 +118,7 @@
     transition:transform .2s, box-shadow .2s, background .2s;
     white-space:nowrap;
   }
+  .btn svg{width:17px;height:17px; flex-shrink:0;}
   .btn-outline{
     border-color:var(--red);
     color:var(--ink);
@@ -151,8 +168,12 @@
     color:var(--ink-faint);
     font-weight:400;
     opacity:0;
+    display:inline-flex;
+    align-items:center;
+    gap:12px;
     animation:riseIn .9s ease .3s forwards;
   }
+  .hero .sub svg{width:16px;height:16px; color:var(--gold); flex-shrink:0;}
   .hero-ctas{
     margin-top:48px;
     display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
@@ -170,11 +191,21 @@
     font-family:var(--arabic);
     font-weight:800;
     font-size:clamp(28px,3.6vw,42px);
-    margin-top:14px;
+    line-height:1.25;
+    margin-top:16px;
+    letter-spacing:-0.01em;
     color:var(--ink);
   }
+  .section-head h2::after{
+    content:'';
+    display:block;
+    width:52px;height:3px;
+    margin:20px auto 0;
+    border-radius:3px;
+    background:linear-gradient(90deg, var(--red-bright), var(--gold));
+  }
   .section-head p{
-    margin-top:16px;
+    margin-top:22px;
     color:var(--ink-dim);
     font-size:17px;
     line-height:1.8;
@@ -194,6 +225,12 @@
     margin-bottom:22px;
   }
   .about p strong{color:var(--ink); font-weight:700;}
+  .about p.lead{
+    font-size:21px;
+    line-height:1.9;
+    color:var(--ink);
+    font-weight:500;
+  }
   .about-en{
     margin-top:36px;
     padding-top:32px;
@@ -225,6 +262,14 @@
     transition:background .3s;
   }
   .client-cell:hover{background:rgba(225,38,28,0.06);}
+  .client-cell{flex-direction:column; gap:10px;}
+  .client-cell .client-icon{
+    width:26px;height:26px;
+    color:var(--gold);
+    opacity:0.85;
+    transition:color .3s, opacity .3s;
+  }
+  .client-cell:hover .client-icon{color:var(--red-bright); opacity:1;}
   .client-cell span{
     font-family:var(--display);
     font-weight:700;
@@ -268,6 +313,23 @@
     border-color:rgba(225,38,28,0.4);
   }
   .service-card:hover::before{opacity:1;}
+  .service-icon{
+    width:48px;height:48px;
+    border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg, rgba(225,38,28,0.16), rgba(232,165,61,0.08));
+    border:1px solid rgba(232,165,61,0.25);
+    margin-bottom:20px;
+    color:var(--gold-soft);
+    position:relative;
+    transition:border-color .3s, color .3s, transform .3s;
+  }
+  .service-icon svg{width:23px;height:23px;}
+  .service-card:hover .service-icon{
+    border-color:rgba(225,38,28,0.5);
+    color:var(--red-bright);
+    transform:translateY(-2px);
+  }
   .service-tag{
     display:inline-block;
     font-family:var(--display);
@@ -331,7 +393,11 @@
     border:1px solid rgba(232,165,61,0.35);
     padding:3px 10px;
     border-radius:20px;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
   }
+  .cat svg{width:11px;height:11px;}
   .case-body p{
     color:var(--ink-dim);
     font-size:15px;
@@ -350,7 +416,11 @@
     border-radius:6px;
     transition:all .25s;
     white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
   }
+  .case-link svg{width:14px;height:14px;}
   .case-link:hover{
     color:#fff;
     border-color:var(--red);
@@ -385,15 +455,19 @@
     font-family:var(--display);
     font-size:12.5px; letter-spacing:0.2em; text-transform:uppercase;
     color:var(--gold); margin-bottom:18px; font-weight:600;
+    display:flex; align-items:center; gap:9px;
   }
-  .footer-col ul li{margin-bottom:12px; color:var(--ink-dim); font-size:15px;}
+  .footer-col h4 svg{width:15px;height:15px;}
+  .footer-col ul li{margin-bottom:12px; color:var(--ink-dim); font-size:15px; display:flex; align-items:center; gap:9px;}
+  .footer-col ul li svg{width:15px;height:15px; color:var(--ink-faint); flex-shrink:0;}
   .footer-col ul li a:hover{color:var(--gold-soft);}
   .footer-bottom{
     display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px;
     color:var(--ink-faint); font-size:13px;
   }
   .footer-social{display:flex; gap:18px;}
-  .footer-social a{color:var(--ink-dim); font-family:var(--display); font-size:13px; font-weight:500;}
+  .footer-social a{color:var(--ink-dim); font-family:var(--display); font-size:13px; font-weight:500; display:inline-flex; align-items:center; gap:7px;}
+  .footer-social a svg{width:15px;height:15px;}
   .footer-social a:hover{color:var(--red-bright);}
 
   .reveal{opacity:0; transform:translateY(30px); transition:opacity .8s ease, transform .8s ease;}
@@ -427,9 +501,108 @@
 </head>
 <body>
 
+<svg style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true">
+<defs>
+  <symbol id="i-aperture" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="14.31" y1="8" x2="20.05" y2="17.94"/>
+    <line x1="9.69" y1="8" x2="21.17" y2="8"/>
+    <line x1="7.38" y1="12" x2="13.12" y2="2.06"/>
+    <line x1="9.69" y1="16" x2="3.95" y2="6.06"/>
+    <line x1="14.31" y1="16" x2="2.83" y2="16"/>
+    <line x1="16.62" y1="12" x2="10.88" y2="21.94"/>
+  </symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+  </symbol>
+  <symbol id="i-clapper" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8.5 5 4h14l2 4.5"/>
+    <path d="M3 8.5h18V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5Z"/>
+    <path d="m6 4 2 4.5M11 4l2 4.5M16 4l2 4.5"/>
+  </symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+    <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+    <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+    <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+  </symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </symbol>
+  <symbol id="i-script" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20h9"/>
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+  </symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m3 11 18-5v12L3 13v-2z"/>
+    <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+  </symbol>
+  <symbol id="i-drone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="2.5"/>
+    <path d="M9.5 9.5 5 5M14.5 9.5 19 5M9.5 14.5 5 19M14.5 14.5 19 19"/>
+    <circle cx="5" cy="5" r="2"/>
+    <circle cx="19" cy="5" r="2"/>
+    <circle cx="5" cy="19" r="2"/>
+    <circle cx="19" cy="19" r="2"/>
+  </symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </symbol>
+  <symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="2" width="16" height="20" rx="1"/>
+    <line x1="9" y1="6" x2="9" y2="6.01"/>
+    <line x1="15" y1="6" x2="15" y2="6.01"/>
+    <line x1="9" y1="10" x2="9" y2="10.01"/>
+    <line x1="15" y1="10" x2="15" y2="10.01"/>
+    <line x1="9" y1="14" x2="9" y2="14.01"/>
+    <line x1="15" y1="14" x2="15" y2="14.01"/>
+    <line x1="9" y1="18" x2="15" y2="18"/>
+  </symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+  </symbol>
+  <symbol id="i-instagram" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5"/>
+    <circle cx="12" cy="12" r="4"/>
+    <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-facebook" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+  </symbol>
+  <symbol id="i-tiktok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 3v12.5a3.5 3.5 0 1 1-2.5-3.35"/>
+    <path d="M9 3c.5 3 2.5 5 5.5 5.3v3a8.3 8.3 0 0 1-3-.7"/>
+  </symbol>
+</defs>
+</svg>
+
 <header>
   <nav class="wrap">
-    <a href="#contact" class="btn btn-outline nav-cta" style="display:flex;">تواصل معنا</a>
+    <a href="#contact" class="btn btn-outline nav-cta" style="display:flex;"><svg class="icon"><use href="#i-chat"/></svg>تواصل معنا</a>
     <ul class="nav-links" id="navLinks">
       <li><a href="#top" class="active">الرئيسية</a></li>
       <li><a href="#about">من نحن</a></li>
@@ -451,22 +624,24 @@
     <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1783707541/Asset_4logo_peak-3_surnqo.png" alt="Photo">
   </div>
   <h1>نحوّل الكاميرا إلى <span class="accent-gold">أداة تأثير</span><br>لا مجرد <span class="accent-red">توثيق</span></h1>
-  <p class="sub">Beyond filming — we build influence</p>
+  <p class="sub"><svg class="icon"><use href="#i-aperture"/></svg>Beyond filming — we build influence</p>
   <div class="hero-ctas">
-    <a href="#contact" class="btn btn-outline">تواصل معنا</a>
-    <a href="#work" class="btn btn-solid">اطلع على أعمالنا</a>
+    <a href="#contact" class="btn btn-outline"><svg class="icon"><use href="#i-chat"/></svg>تواصل معنا</a>
+    <a href="#work" class="btn btn-solid"><svg class="icon"><use href="#i-play"/></svg>اطلع على أعمالنا</a>
   </div>
 </section>
 
 <section class="about" id="about">
   <div class="wrap reveal">
     <div class="section-head" style="margin-bottom:44px;">
-      <span class="eyebrow">من نحن</span>
+      <span class="eyebrow-row"><span class="eyebrow-icon-badge"><svg><use href="#i-aperture"/></svg></span><span class="eyebrow">من نحن</span></span>
       <h2>قصة بيك فيجن</h2>
     </div>
-    <p><strong>بيك فيجن (PEAK VISION)</strong> شركة متخصصة في تقديم الحلول المرئية الإبداعية، نعمل مع أبرز العلامات التجارية في قطاعات العقارات والتعليم وقطاع الأغذية والمشروبات.</p>
+    <p class="lead"><strong>بيك فيجن (PEAK VISION)</strong> شركة متخصصة في تقديم الحلول المرئية الإبداعية، نعمل مع أبرز العلامات التجارية في قطاعات العقارات والتعليم وقطاع الأغذية والمشروبات.</p>
     <p>فلسفتنا واضحة وبسيطة: يجب أن يخدم كل فيديو هدفًا محددًا — سواء كان البيع، أو التعريف بالعلامة التجارية، أو بناء الثقة. فلا مكان لمحتوى بلا غاية.</p>
     <p>ولهذا، لا نمسك الكاميرا قبل أن ندرس الشركة دراسة معمّقة: نقاط قوتها وضعفها، شخصيتها في السوق، مجلس إدارتها وعملاءها، وطبيعة مشاريعها. فكل هذه العناصر تحدد شكل الفيديو ورسالته، لتكون النتيجة محتوى مبنيًا على فهم حقيقي لموقع الشركة في السوق، لا مجرد صورة جذابة خالية من الاستراتيجية.</p>
+    
+    
     <div class="about-en">
       PEAK VISION is a creative visual solutions company, working with leading brands across real estate, education, and the F&amp;B sector.<br><br>
       Our philosophy is simple: every video must serve a clear purpose — whether it's driving sales, building brand awareness, or establishing trust.<br><br>
@@ -478,18 +653,21 @@
 <section id="clients">
   <div class="wrap reveal">
     <div class="section-head">
-      <span class="eyebrow">عملاؤنا</span>
+      <span class="eyebrow-row"><span class="eyebrow-icon-badge"><svg><use href="#i-users"/></svg></span><span class="eyebrow">عملاؤنا</span></span>
       <h2>ثقة تُترجم إلى نتائج</h2>
       <p>نُترجم رؤية أبرز العلامات التجارية إلى محتوى يصنع الأثر.</p>
     </div>
     <div class="clients-grid">
-      <div class="client-cell"><span>وديان للتنمية العمرانية</span></div>
-      <div class="client-cell"><span>شركة الخليج</span></div>
-      <div class="client-cell"><span>نيو سيتي</span></div>
-      <div class="client-cell"><span>نادي سات الرياضي</span></div>
-      <div class="client-cell"><span>مدرسة نور العلم</span></div>
-      <div class="client-cell"><span>كيتشن زون</span></div>
-      <div class="client-cell"><span>مصنع عاصم جاد</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>وديان للتنمية العمرانية</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>مزايا </span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>نيو سيتي</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>معمار المعز</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>عقار جروب</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>بصمة</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>جولدن لايف</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>مرن</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>مدرسة نور العلم</span></div>
+      <div class="client-cell"><svg class="client-icon"><use href="#i-building"/></svg><span>PeakVision</span></div>
       <div class="client-cell add-new">+</div>
     </div>
   </div>
@@ -498,36 +676,42 @@
 <section id="services">
   <div class="wrap reveal">
     <div class="section-head">
-      <span class="eyebrow">خدماتنا</span>
+      <span class="eyebrow-row"><span class="eyebrow-icon-badge"><svg><use href="#i-grid"/></svg></span><span class="eyebrow">خدماتنا</span></span>
       <h2>كل ما تحتاجه علامتك التجارية</h2>
     </div>
     <div class="services-grid">
       <div class="service-card">
+        <div class="service-icon"><svg><use href="#i-calendar"/></svg></div>
         <span class="service-tag">EVT</span>
         <h3>تغطية الفعاليات</h3>
         <p>تغطية فعاليات احترافية بتسليم فوري في نفس اليوم — لأن قيمة اللحظة لا تحتمل التأجيل.</p>
       </div>
       <div class="service-card">
+        <div class="service-icon"><svg><use href="#i-script"/></svg></div>
         <span class="service-tag">DIR</span>
         <h3>الإدارة الإبداعية</h3>
         <p>إدارة إبداعية متكاملة، من كتابة السيناريو وتصميم اللوكيشن، وصولًا إلى ما بعد الإنتاج وتحليل الأداء.</p>
       </div>
       <div class="service-card">
+        <div class="service-icon"><svg><use href="#i-megaphone"/></svg></div>
         <span class="service-tag">PROMO</span>
         <h3>الفيديوهات الترويجية</h3>
         <p>فيديوهات ترويجية متكاملة للمشاريع العقارية والتجارية، تجمع بين جودة الإنتاج العالية وقوة الرسالة البيعية.</p>
       </div>
       <div class="service-card">
+        <div class="service-icon"><svg><use href="#i-drone"/></svg></div>
         <span class="service-tag">AER</span>
         <h3>فيديوهات المواقع والدرون</h3>
         <p>فيديوهات تحديد مواقع بتصوير درون احترافي، تُبرز قيمة المشروع وموقعه الاستراتيجي بصريًا، مدعومة بالإحصائيات والإنفوجراف.</p>
       </div>
       <div class="service-card">
+        <div class="service-icon"><svg><use href="#i-play"/></svg></div>
         <span class="service-tag">REEL</span>
         <h3>الريلز والفيديوهات القصيرة</h3>
         <p>ريلز مصمَّمة للتحويل، بإضاءة سينمائية وسيناريو بيعي مدروس ومونتاج عصري يأسر الانتباه من الثانية الأولى.</p>
       </div>
       <div class="service-card">
+        <div class="service-icon"><svg><use href="#i-camera"/></svg></div>
         <span class="service-tag">PHOTO</span>
         <h3>التصوير الفوتوغرافي</h3>
         <p>تصوير فوتوغرافي احترافي للمنتجات والمواقع والفعاليات، بعين تُترجم التفاصيل إلى قيمة بصرية.</p>
@@ -539,130 +723,228 @@
 <section id="work">
   <div class="wrap reveal">
     <div class="section-head">
-      <span class="eyebrow">أعمالنا</span>
+      <span class="eyebrow-row"><span class="eyebrow-icon-badge"><svg><use href="#i-clapper"/></svg></span><span class="eyebrow">أعمالنا</span></span>
       <h2>دراسات الحالة</h2>
     </div>
     <div class="case-list">
       <div class="case-item">
         <div class="case-num">01</div>
         <div class="case-body">
-          <h3>بصمة - (مبادرة مدينة السادات الجديدة) <span class="cat">عقارات</span></h3>
+          <h3>بصمة - (مبادرة مدينة السادات الجديدة) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
           <p>من الفكرة إلى الشاشة — تولّينا كل تفاصيل الإعلان: السيناريو والحوار والتصوير والمونتاج، لتقديم محتوى حقق نتائج تفوق التوقعات.</p>
         </div>
-        <a href="https://www.youtube.com/watch?v=h7sQ22TAqVg"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
+
+
+
+       <a href="https://www.youtube.com/watch?v=h7sQ22TAqVg" target="_blank">
+    <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784400729/Screenshot_2026-07-18_214551_mb9psf.png"  width="400"
+     alt="Video Thumbnail">
+</a>
+
+
+</div>
+<div class="case-item">
+  <div class="case-num">02</div>
+  <div class="case-body">
+    <h3>بصمة - (إعلان ترويجي)  <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+    <p>رؤية إبداعية تتحول إلى إعلان مؤثر، بدايةً من التخطيط وحتى التصوير والإخراج والمونتاج — محتوى صُمم ليترك انطباعًا ويحقق النتائج.</p>
+  </div>
+  
+  
+  <a href="https://www.youtube.com/watch?v=oaq5MXnm4_I" target="_blank">
+  <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784400986/Screenshot_2026-07-18_215611_zpkhtj.png"  width="400"
+  alt="Video Thumbnail">
+  </a>
+  
+  
+</div>
+<div class="case-item">
+  <div class="case-num">03</div>
+  <div class="case-body">
+    <h3>رواسي - (كريتيف اعلان - 1 ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+    <p>إنتاج وتصوير احترافي، من تنفيذ المشاهد وإبراز التفاصيل، وصولًا إلى المونتاج النهائي — إعلان صُمم ليقدم المشروع بصورة تليق به.</p>
+  </div>
+  
+  
+  <a href="https://www.youtube.com/watch?v=YgEQeLywJQQ" target="_blank">
+  <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784401252/Screenshot_2026-07-18_220039_zie4wo.png"  width="400"
+  alt="Video Thumbnail">
+  </a>
+  
+  
+</div>
+
+
+
+<div class="case-item">
+  <div class="case-num">04</div>
+  <div class="case-body">
+    <h3>رواسي - (كريتيف اعلان - 2 ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+    <p>استكمالًا للرؤية الإبداعية، من تنفيذ المشاهد وإبراز التفاصيل، وصولًا إلى المونتاج النهائي — الجزء الثاني الذي يكتمل به تأثير الإعلان.</p>
+  </div>
+  
+  
+  
+  <a href="https://www.youtube.com/watch?v=3JI8XhOtgM4" target="_blank">
+  <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784401591/Screenshot_2026-07-18_220551_fmfqup.png"  width="400"
+  alt="Video Thumbnail">
+  </a>
+  
+  
+</div>
+
+
+<div class="case-item">
+  <div class="case-num">05</div>
+  <div class="case-body">
+    <h3>رواسي - (برومو - 1 ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+    <p>رحلة إنتاج متكاملة، من التصوير الميداني وإبراز مراحل التنفيذ، وصولًا إلى الإخراج والمونتاج — برومو يعكس جودة العمل باحترافية.</p>
+  </div>
+
+
+
+  <a href="https://www.youtube.com/watch?v=ayF-yfNoFHQ" target="_blank">
+  <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784401660/Screenshot_2026-07-18_220728_musoge.png"  width="400"
+  alt="Video Thumbnail">
+  </a>
+  
+  
+  
+  
+</div>
+
+
+
+
+<div class="case-item">
+  <div class="case-num">06</div>
+  <div class="case-body">
+    <h3>رواسي - (برومو - 2 ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+    <p>تصوير جوي بتقنيات الدرون ودمج احترافي مع مشاهد 3D، من التخطيط والتنفيذ إلى الإخراج والمونتاج — تجربة بصرية صُممت لإبراز المشروع من كل زاوية.</p>
+  </div>
+  
+  
+  
+    <a href="https://www.youtube.com/watch?v=1MB5FzhBOUM" target="_blank">
+    <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784401761/Screenshot_2026-07-18_220857_pabnaz.png"  width="400"
+    alt="Video Thumbnail">
+    </a>
+  
+    
+    
+  </div>
+  
+  
+  
+  
+  
+  
+  <div class="case-item">
+    <div class="case-num">07</div>
+    <div class="case-body">
+      <h3>مارفل - (برومو - 1 ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+      <p>رؤية توثيقية متكاملة، من متابعة مراحل التنفيذ إلى المونتاج الاحترافي — فيديو يُبرز مسيرة المشروع بجودة تليق بحجمه.</p>
+    </div>
+    
+    
+    
+      <a href="https://www.youtube.com/watch?v=hCsXCS9p2KU" target="_blank">
+      <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784401837/Screenshot_2026-07-18_221023_el63p4.png"  width="400"
+      alt="Video Thumbnail">
+      </a>
+    
+      
+      
+      
+      
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    
+    <div class="case-item">
+      <div class="case-num">08</div>
+      <div class="case-body">
+        <h3>مارفل - (برومو - 2 ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+        <p>كل مرحلة تحمل إنجازًا جديدًا، من التصوير داخل موقع العمل إلى اللمسات الأخيرة في المونتاج — الجزء الثاني من توثيق المشروع.</p>
       </div>
-      <div class="case-item">
-        <div class="case-num">02</div>
-        <div class="case-body">
-          <h3>بصمة - (إعلان ترويجي)  <span class="cat">عقارات</span></h3>
-          <p>رؤية إبداعية تتحول إلى إعلان مؤثر، بدايةً من التخطيط وحتى التصوير والإخراج والمونتاج — محتوى صُمم ليترك انطباعًا ويحقق النتائج.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=oaq5MXnm4_I" target="_blank" class="case-link">مشاهدة الفيديو ←</a>
-      </div>
-      <div class="case-item">
-        <div class="case-num">03</div>
-        <div class="case-body">
-          <h3>رواسي - (كريتيف اعلان - 1 ) <span class="cat">عقارات</span></h3>
-          <p>إنتاج وتصوير احترافي، من تنفيذ المشاهد وإبراز التفاصيل، وصولًا إلى المونتاج النهائي — إعلان صُمم ليقدم المشروع بصورة تليق به.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=YgEQeLywJQQ"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
-      </div>
-
-
       
-      <div class="case-item">
-        <div class="case-num">04</div>
-        <div class="case-body">
-          <h3>رواسي - (كريتيف اعلان - 2 ) <span class="cat">عقارات</span></h3>
-          <p>استكمالًا للرؤية الإبداعية، من تنفيذ المشاهد وإبراز التفاصيل، وصولًا إلى المونتاج النهائي — الجزء الثاني الذي يكتمل به تأثير الإعلان.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=3JI8XhOtgM4"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
+      
+      
+      
+      <a href="https://www.youtube.com/watch?v=l0MYSbaLbM0" target="_blank">
+      <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784401955/Screenshot_2026-07-18_221221_gofssf.png"  width="400"
+      alt="Video Thumbnail">
+      </a>
+      
+      
+    </div>
+    
+    
+    <div class="case-item">
+      <div class="case-num">09</div>
+      <div class="case-body">
+        <h3>عقار - (ايفينت) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+        <p>رؤية إبداعية لتوثيق الفعاليات، من التقاط أبرز المشاهد إلى الإخراج والمونتاج — برومو يبرز الحدث بصورة مؤثرة واحترافية.</p>
       </div>
       
-
-      <div class="case-item">
-        <div class="case-num">05</div>
-        <div class="case-body">
-          <h3>رواسي - (برومو - 1 ) <span class="cat">عقارات</span></h3>
-          <p>رحلة إنتاج متكاملة، من التصوير الميداني وإبراز مراحل التنفيذ، وصولًا إلى الإخراج والمونتاج — برومو يعكس جودة العمل باحترافية.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=ayF-yfNoFHQ"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
+      
+      
+      
+      <a href="https://www.youtube.com/watch?v=J8rkxc27uXY" target="_blank">
+        <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784402224/Screenshot_2026-07-18_221649_rizyp0.png"  width="400"
+        alt="Video Thumbnail">
+      </a>
+      
+      
+    </div>
+    
+    
+    <div class="case-item">
+      <div class="case-num">10</div>
+      <div class="case-body">
+        <h3>البوادي - (إعلان كريتيڤ ) <span class="cat"><svg><use href="#i-building"/></svg>عقارات</span></h3>
+        <p>إنتاج بصري احترافي، يجمع بين التصوير السينمائي والإخراج المتقن والمونتاج الإبداعي — إعلان صُمم ليترك انطباعًا قويًا ويعزز حضور العلامة التجارية.  </p>
       </div>
       
+      
+      
+      
+      
+      <a href="https://www.youtube.com/watch?v=iil8Whqe3yU" target="_blank">
+      <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784402421/Screenshot_2026-07-18_222009_y6wjdf.png"  width="400"
+      alt="Video Thumbnail">
+      </a>
 
       
-
-      <div class="case-item">
-        <div class="case-num">06</div>
-        <div class="case-body">
-          <h3>رواسي - (برومو - 2 ) <span class="cat">عقارات</span></h3>
-          <p>تصوير جوي بتقنيات الدرون ودمج احترافي مع مشاهد 3D، من التخطيط والتنفيذ إلى الإخراج والمونتاج — تجربة بصرية صُممت لإبراز المشروع من كل زاوية.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=1MB5FzhBOUM"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
+    </div>
+    
+    
+    
+    
+    <div class="case-item">
+      <div class="case-num">11</div>
+      <div class="case-body">
+        <h3>للاطلاع على المزيد من أعمالنا</h3>
+        <p>إنتاج بصري احترافي، يجمع بين التصوير السينمائي والإخراج المتقن والمونتاج الإبداعي — إعلان صُمم ليترك انطباعًا قويًا ويعزز حضور العلامة التجارية.  </p>
       </div>
       
-
       
-
       
-
-      <div class="case-item">
-        <div class="case-num">07</div>
-        <div class="case-body">
-          <h3>مارفل - (برومو - 1 ) <span class="cat">عقارات</span></h3>
-          <p>رؤية توثيقية متكاملة، من متابعة مراحل التنفيذ إلى المونتاج الاحترافي — فيديو يُبرز مسيرة المشروع بجودة تليق بحجمه.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=hCsXCS9p2KU"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
-      </div>
+      <a href="https://www.youtube.com/@hegazy-vision" target="_blank">
+      <img src="https://res.cloudinary.com/gaubc4t1/image/upload/v1784402572/cover-PEAK_smbbd9.png"  width="400"
+      alt="Video Thumbnail">
+      </a>
+  
+        
       
-
       
-
       
-
-      
-
-      <div class="case-item">
-        <div class="case-num">08</div>
-        <div class="case-body">
-          <h3>مارفل - (برومو - 2 ) <span class="cat">عقارات</span></h3>
-          <p>كل مرحلة تحمل إنجازًا جديدًا، من التصوير داخل موقع العمل إلى اللمسات الأخيرة في المونتاج — الجزء الثاني من توثيق المشروع.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=l0MYSbaLbM0"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
-      </div>
-      
-
-      <div class="case-item">
-        <div class="case-num">09</div>
-        <div class="case-body">
-          <h3>عقار - (ايفينت) <span class="cat">عقارات</span></h3>
-          <p>رؤية إبداعية لتوثيق الفعاليات، من التقاط أبرز المشاهد إلى الإخراج والمونتاج — برومو يبرز الحدث بصورة مؤثرة واحترافية.</p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=J8rkxc27uXY  "  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
-      </div>
-      
-
-      <div class="case-item">
-        <div class="case-num">10</div>
-        <div class="case-body">
-          <h3>البوادي - (إعلان كريتيڤ ) <span class="cat">عقارات</span></h3>
-          <p>إنتاج بصري احترافي، يجمع بين التصوير السينمائي والإخراج المتقن والمونتاج الإبداعي — إعلان صُمم ليترك انطباعًا قويًا ويعزز حضور العلامة التجارية.  </p>
-        </div>
-        <a href="https://www.youtube.com/watch?v=iil8Whqe3yU"  target="_blank" class="case-link">مشاهدة الفيديو ←</a>
-      </div>
-      
-
-      
-
-      <div class="case-item">
-        <div class="case-num">11</div>
-        <div class="case-body">
-          <h3>للاطلاع على المزيد من أعمالنا</h3>
-          <p>إنتاج بصري احترافي، يجمع بين التصوير السينمائي والإخراج المتقن والمونتاج الإبداعي — إعلان صُمم ليترك انطباعًا قويًا ويعزز حضور العلامة التجارية.  </p>
-        </div>
-        <a href="https://www.youtube.com/@hegazy-vision"  target="_blank" class="case-link">مشاهدة القناة ←</a>
-      </div>
-      
+    </div>
 
 
   </div>
@@ -670,10 +952,10 @@
 
 <section class="cta-strip" id="contact">
   <div class="wrap reveal">
-    <span class="eyebrow">لنبدأ مشروعك</span>
+    <span class="eyebrow-row"><span class="eyebrow-icon-badge"><svg><use href="#i-rocket"/></svg></span><span class="eyebrow">لنبدأ مشروعك</span></span>
     <h2 style="margin-top:18px;">جاهزين نحوّل <span class="accent">فكرتك</span> لمحتوى يصنع الأثر؟</h2>
     <div class="hero-ctas" style="margin-top:10px;">
-      <a href="https://wa.me/201011650100" class="btn btn-solid">واتساب: 01011650100</a>
+      <a href="https://wa.me/201011650100" class="btn btn-solid"><svg class="icon"><use href="#i-chat"/></svg>واتساب: 01011650100</a>
        <!-- <a href="mailto:hello@peakvisionmedia.com" class="btn btn-outline">hello@peakvisionmedia.com</a> -->
     </div>
   </div>
@@ -687,28 +969,28 @@
         <p>إنتاج إعلامي وحلول بصرية — نحوّل الكاميرا إلى أداة تأثير، لا مجرد توثيق.</p>
       </div>
       <div class="footer-col">
-        <h4>الشركة</h4>
+        <h4><svg><use href="#i-building"/></svg>الشركة</h4>
         <ul>
-          <li><a href="#about">من نحن</a></li>
-          <li><a href="#work">أعمالنا</a></li>
-          <li><a href="#services">خدماتنا</a></li>
+          <li><svg><use href="#i-aperture"/></svg><a href="#about">من نحن</a></li>
+          <li><svg><use href="#i-clapper"/></svg><a href="#work">أعمالنا</a></li>
+          <li><svg><use href="#i-grid"/></svg><a href="#services">خدماتنا</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>تواصل</h4>
+        <h4><svg><use href="#i-phone"/></svg>تواصل</h4>
         <ul>
-          <li>واتساب: 01011650100</li>
+          <li><svg><use href="#i-chat"/></svg>واتساب: 01011650100</li>
           <!-- <li>hello@peakvisionmedia.com</li> -->
-          <li>مدينة السادات، مصر</li>
+          <li><svg><use href="#i-pin"/></svg>مدينة السادات، مصر</li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
       <span>© 2026 PEAK VISION. جميع الحقوق محفوظة.</span>
       <div class="footer-social">
-        <a href="#">Instagram</a>
-        <a href="#">Facebook</a>
-        <a href="#">TikTok</a>
+        <a href="#"><svg><use href="#i-instagram"/></svg>Instagram</a>
+        <a href="#"><svg><use href="#i-facebook"/></svg>Facebook</a>
+        <a href="#"><svg><use href="#i-tiktok"/></svg>TikTok</a>
       </div>
     </div>
   </div>
