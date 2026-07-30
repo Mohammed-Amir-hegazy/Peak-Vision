@@ -1077,7 +1077,7 @@ No goal? No video. المحتوى اللي من غير هدف ملوش مكان 
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); } });
-  }, {threshold:0.15});
+  }, {threshold:0.01, rootMargin:'0px 0px -50px 0px'});
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
   const sections = document.querySelectorAll('section[id]');
