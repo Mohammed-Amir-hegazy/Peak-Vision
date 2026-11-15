@@ -1,0 +1,538 @@
+{
+  "settings": {
+    "siteTitle": "PEAK VISION | إنتاج إعلامي وحلول بصرية",
+    "showMoreText": "عرض المزيد",
+    "showLessText": "عرض أقل",
+    "customCss": ""
+  },
+  "theme": {
+    "bgBlack": "#0c0403",
+    "bgDeep": "#30363c",
+    "bgMid": "#3a0d0d",
+    "red": "#e1261c",
+    "redBright": "#ff3b30",
+    "gold": "#937e73",
+    "goldSoft": "#937e73",
+    "ink": "#f4ede9",
+    "inkDim": "#b8a9a4",
+    "inkFaint": "#7a6863"
+  },
+  "layout": [
+    {
+      "id": "hero",
+      "visible": true
+    },
+    {
+      "id": "about",
+      "visible": true
+    },
+    {
+      "id": "stats",
+      "visible": true
+    },
+    {
+      "id": "clients",
+      "visible": true
+    },
+    {
+      "id": "services",
+      "visible": true
+    },
+    {
+      "id": "work",
+      "visible": true
+    },
+    {
+      "id": "contact",
+      "visible": true
+    }
+  ],
+  "header": {
+    "showCta": true,
+    "cta": {
+      "text": "تواصل معنا",
+      "link": "#contact",
+      "icon": "chat"
+    },
+    "links": [
+      {
+        "text": "الرئيسية",
+        "link": "#top"
+      },
+      {
+        "text": "من نحن",
+        "link": "#about"
+      },
+      {
+        "text": "عملاؤنا",
+        "link": "#clients"
+      },
+      {
+        "text": "خدماتنا",
+        "link": "#services"
+      },
+      {
+        "text": "أعمالنا",
+        "link": "#work"
+      }
+    ],
+    "brandText1": "PEAK",
+    "brandText2": "VISION",
+    "logoImage": ""
+  },
+  "hero": {
+    "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1785181764/peak-vision-logo--_1_ualdx5.png",
+    "logoAlt": "Photo",
+    "title": "The Impact [[You Seek]]",
+    "subIcon": "aperture",
+    "subtitle": "Beyond filming — we build influence",
+    "buttons": [
+      {
+        "text": "تواصل معنا",
+        "link": "#contact",
+        "icon": "chat",
+        "style": "outline"
+      },
+      {
+        "text": "اطلع على أعمالنا",
+        "link": "#work",
+        "icon": "play",
+        "style": "solid"
+      }
+    ]
+  },
+  "about": {
+    "eyebrow": "من نحن",
+    "eyebrowIcon": "aperture",
+    "title": "About Us",
+    "description": "",
+    "blocks": [
+      {
+        "type": "lead",
+        "text": "إحنا في PEAK VISION بنقدم حلول مرئية إبداعية لأكبر البراندات في قطاعات العقارات، التعليم، والأغذية والمشروبات."
+      },
+      {
+        "type": "heading",
+        "text": "?Why PEAK VISION"
+      },
+      {
+        "type": "text",
+        "text": "أي فيديو بنصممه لازم يوصلك لـ Goal واضح: سواء كان زيادة مبيعات (Sales)، انتشار أكبر للبراند (Brand Awareness)، أو بناء ثقة أعمق مع عملائك (Trust). No goal? No video. المحتوى اللي من غير هدف ملوش مكان عندنا."
+      },
+      {
+        "type": "heading",
+        "text": "?HOW WE DO IT"
+      },
+      {
+        "type": "text",
+        "text": "بنبدأ بالـ Strategy مش بالتصوير! بنفهم تفاصيل عملك، جمهورك المستهدف (Target Audience)، ومكانك في السوق، عشان نطلع بـ فيديو مبني على رؤية صح، مش مجرد Visuals عادية."
+      }
+    ],
+    "englishText": "PEAK VISION is a creative visual solutions company, working with leading brands across real estate, education, and the F&B sector.\n\nOur philosophy is simple: every video must serve a clear purpose — whether it's driving sales, building brand awareness, or establishing trust.\n\nThat's why we never pick up a camera before deeply studying the company first — its strengths, market personality, leadership, clients, and projects — ensuring every result is built on real market understanding, not just a beautiful image without strategy.",
+    "founder": {
+      "show": true,
+      "image": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1785180972/founder_jwwydz.jpg",
+      "imageAlt": "Mohamed Hegazy",
+      "eyebrow": "Meet our founder",
+      "name": "Mr Mohamed Hegazy",
+      "bio": "قصة Peak Vision بدأت بعد خبرة أكتر من 7 سنين في الـ Media Production والـ Advertising بين مصر والسعودية والإمارات، برؤية إن أغلب الـ Brands محتاجة تبعد عن الـ Copy-Paste Content وتعمل Identity خاصة بيها، عشان كده بيوجه الفريق بـ Mindset مختلفة، بتركز إن كل Project يتعمل له Custom Strategy و High-End Production يحقق Real Impact ويحول رؤية أي براند لـ Masterpiece حقيقية بتنافس بقوة في السوق."
+    }
+  },
+  "stats": {
+    "eyebrow": "",
+    "eyebrowIcon": "",
+    "title": "",
+    "description": "",
+    "initialCount": 0,
+    "items": [
+      {
+        "number": "5+",
+        "label": "أنظمة خدمات"
+      },
+      {
+        "number": "10+",
+        "label": "فريق عمل"
+      },
+      {
+        "number": "+25",
+        "label": "عميل دائم"
+      },
+      {
+        "number": "+2000",
+        "label": "مشروع منجز"
+      }
+    ]
+  },
+  "clients": {
+    "eyebrow": "عملاؤنا",
+    "eyebrowIcon": "users",
+    "title": "ثقة تُترجم إلى نتائج",
+    "description": "نُترجم رؤية أبرز العلامات التجارية إلى محتوى يصنع الأثر.",
+    "initialCount": 12,
+    "showAddCell": true,
+    "items": [
+      {
+        "name": "وديان للتنمية العمرانية",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530985/IMG_7923.JPG_puwete.jpg",
+        "link": ""
+      },
+      {
+        "name": "مزايا",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530984/IMG_7921.JPG_tloiq0.jpg",
+        "link": ""
+      },
+      {
+        "name": "نيو سيتي",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530987/IMG_7946.JPG_wywi0k.jpg",
+        "link": ""
+      },
+      {
+        "name": "معمار المعز",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530985/IMG_7924.JPG_mpbrmg.jpg",
+        "link": ""
+      },
+      {
+        "name": "عقار جروب",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530985/IMG_7927.JPG_y2msh0.jpg",
+        "link": ""
+      },
+      {
+        "name": "بصمة",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530984/IMG_7919.JPG_lbavs9.jpg",
+        "link": ""
+      },
+      {
+        "name": "جولدن لايف",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530985/IMG_7929.JPG_ahev4m.jpg",
+        "link": ""
+      },
+      {
+        "name": "مرن",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530987/IMG_7947.JPG_ha0s0c.jpg",
+        "link": ""
+      },
+      {
+        "name": "مدرسة نور العلم",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7938.JPG_zgtgsj.jpg",
+        "link": ""
+      },
+      {
+        "name": "sites",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530987/IMG_7945.JPG_kflo4w.jpg",
+        "link": ""
+      },
+      {
+        "name": "west point",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530987/IMG_7948.JPG_zymdxo.jpg",
+        "link": ""
+      },
+      {
+        "name": "Buisness loop",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530987/IMG_7949.JPG_h5y1kr.jpg",
+        "link": ""
+      },
+      {
+        "name": "عز",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7944.JPG_dzosr8.jpg",
+        "link": ""
+      },
+      {
+        "name": "smart group",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7939.JPG_een1yb.jpg",
+        "link": ""
+      },
+      {
+        "name": "حليم",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7943.JPG_yygcbi.jpg",
+        "link": ""
+      },
+      {
+        "name": "المستقبل",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7936.JPG_dwuhlb.jpg",
+        "link": ""
+      },
+      {
+        "name": "عمر نجم جروب",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7937.JPG_jqcyj1.jpg",
+        "link": ""
+      },
+      {
+        "name": "ABM development",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7928.JPG_rblagn.jpg",
+        "link": ""
+      },
+      {
+        "name": "مشارق",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530986/IMG_7935.JPG_ew5wtd.jpg",
+        "link": ""
+      },
+      {
+        "name": "Bali",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530985/IMG_7934.JPG_wrj4rs.jpg",
+        "link": ""
+      },
+      {
+        "name": "logo",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530985/IMG_7933.JPG_beog2y.jpg",
+        "link": ""
+      },
+      {
+        "name": "capital",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530984/IMG_7932.JPG_ualfbo.jpg",
+        "link": ""
+      },
+      {
+        "name": "arkan valley",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530984/IMG_7931.JPG_ndphpf.jpg",
+        "link": ""
+      },
+      {
+        "name": "elbawadi",
+        "logo": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1784530984/IMG_7930.JPG_nnnlol.jpg",
+        "link": ""
+      }
+    ]
+  },
+  "services": {
+    "eyebrow": "خدماتنا",
+    "eyebrowIcon": "grid",
+    "title": "كل ما تحتاجه علامتك التجارية",
+    "description": "",
+    "initialCount": 6,
+    "items": [
+      {
+        "icon": "calendar",
+        "tag": "EVT",
+        "title": "Event Coverage",
+        "description": "تغطية فعاليات احترافية مع تسليم مقاطع في نفس اليوم — لأن اللحظة لها قيمة."
+      },
+      {
+        "icon": "script",
+        "tag": "DIR",
+        "title": "Creative Direction",
+        "description": "إدارة إبداعية كاملة من كتابة السيناريو وتصميم اللوكيشن حتى ما بعد الإنتاج وتحليل الأداء."
+      },
+      {
+        "icon": "megaphone",
+        "tag": "PROMO",
+        "title": "Promotional Videos",
+        "description": "فيديوهات ترويجية متكاملة للمشاريع العقارية والتجارية — تجمع بين الإنتاج العالي وقوة الرسالة البيعية."
+      },
+      {
+        "icon": "drone",
+        "tag": "AER",
+        "title": "Location Videos & Drone",
+        "description": "فيديوهات تحديد المواقع بتصوير درون احترافي — تُبرز قيمة المشروع وموقعه الاستراتيجي بصريًا. و الاحصائيات وال INFOGRAPH"
+      },
+      {
+        "icon": "play",
+        "tag": "REEL",
+        "title": "Reels & Short Videos",
+        "description": "ريلز احترافية مصمَّمة للتحويل — بإضاءة سينمائية وسيناريو بيعي قوي ومونتاج عصري يلفت الانتباه من الثانية الأولى."
+      },
+      {
+        "icon": "camera",
+        "tag": "PHOTO",
+        "title": "Photography",
+        "description": "تصوير فوتوغرافي احترافي للمنتجات، المواقع، والفعاليات — بعين فنية تخدم الهوية البصرية لعلامتك."
+      }
+    ]
+  },
+  "work": {
+    "eyebrow": "أعمالنا",
+    "eyebrowIcon": "clapper",
+    "title": "دراسات الحالة",
+    "description": "",
+    "initialCount": 6,
+    "items": [
+      {
+        "title": "بصمة - (مبادرة مدينة السادات الجديدة)",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "من الفكرة إلى الشاشة — تولّينا كل تفاصيل الإعلان: السيناريو والحوار والتصوير والمونتاج، لتقديم محتوى حقق نتائج تفوق التوقعات.",
+        "link": "https://www.youtube.com/watch?si=-t45L9fuXIjF2Clp&v=j2srx_vsYFo&feature=youtu.be",
+        "thumbnail": "https://res.cloudinary.com/ax5rpqwp/image/upload/v1785181206/%D8%A7%D9%84%D8%B3%D8%A7%D8%AF%D8%A7%D8%AA_lt2ieg.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "بصمة - (مبادرة مدينة السادات الجديدة)",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "من الفكرة إلى الشاشة — تولّينا كل تفاصيل الإعلان: السيناريو والحوار والتصوير والمونتاج، لتقديم محتوى حقق نتائج تفوق التوقعات.",
+        "link": "https://www.youtube.com/watch?v=h7sQ22TAqVg",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784400729/Screenshot_2026-07-18_214551_mb9psf.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "بصمة - (إعلان ترويجي)",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "رؤية إبداعية تتحول إلى إعلان مؤثر، بدايةً من التخطيط وحتى التصوير والإخراج والمونتاج — محتوى صُمم ليترك انطباعًا ويحقق النتائج.",
+        "link": "https://www.youtube.com/watch?v=oaq5MXnm4_I",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784400986/Screenshot_2026-07-18_215611_zpkhtj.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "رواسي - (كريتيف اعلان - 1 )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "إنتاج وتصوير احترافي، من تنفيذ المشاهد وإبراز التفاصيل، وصولًا إلى المونتاج النهائي — إعلان صُمم ليقدم المشروع بصورة تليق به.",
+        "link": "https://www.youtube.com/watch?v=YgEQeLywJQQ",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784401252/Screenshot_2026-07-18_220039_zie4wo.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "رواسي - (كريتيف اعلان - 2 )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "استكمالًا للرؤية الإبداعية، من تنفيذ المشاهد وإبراز التفاصيل، وصولًا إلى المونتاج النهائي — الجزء الثاني الذي يكتمل به تأثير الإعلان.",
+        "link": "https://www.youtube.com/watch?v=3JI8XhOtgM4",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784401591/Screenshot_2026-07-18_220551_fmfqup.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "رواسي - (برومو - 1 )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "رحلة إنتاج متكاملة، من التصوير الميداني وإبراز مراحل التنفيذ، وصولًا إلى الإخراج والمونتاج — برومو يعكس جودة العمل باحترافية.",
+        "link": "https://www.youtube.com/watch?v=ayF-yfNoFHQ",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784401660/Screenshot_2026-07-18_220728_musoge.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "رواسي - (برومو - 2 )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "تصوير جوي بتقنيات الدرون ودمج احترافي مع مشاهد 3D، من التخطيط والتنفيذ إلى الإخراج والمونتاج — تجربة بصرية صُممت لإبراز المشروع من كل زاوية.",
+        "link": "https://www.youtube.com/watch?v=1MB5FzhBOUM",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784401761/Screenshot_2026-07-18_220857_pabnaz.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "مارفل - (برومو - 1 )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "رؤية توثيقية متكاملة، من متابعة مراحل التنفيذ إلى المونتاج الاحترافي — فيديو يُبرز مسيرة المشروع بجودة تليق بحجمه.",
+        "link": "https://www.youtube.com/watch?v=hCsXCS9p2KU",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784401837/Screenshot_2026-07-18_221023_el63p4.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "مارفل - (برومو - 2 )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "كل مرحلة تحمل إنجازًا جديدًا، من التصوير داخل موقع العمل إلى اللمسات الأخيرة في المونتاج — الجزء الثاني من توثيق المشروع.",
+        "link": "https://www.youtube.com/watch?v=l0MYSbaLbM0",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784401955/Screenshot_2026-07-18_221221_gofssf.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "عقار - (ايفينت)",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "رؤية إبداعية لتوثيق الفعاليات، من التقاط أبرز المشاهد إلى الإخراج والمونتاج — برومو يبرز الحدث بصورة مؤثرة واحترافية.",
+        "link": "https://www.youtube.com/watch?v=J8rkxc27uXY",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784402224/Screenshot_2026-07-18_221649_rizyp0.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "البوادي - (إعلان كريتيڤ )",
+        "category": "عقارات",
+        "categoryIcon": "building",
+        "description": "إنتاج بصري احترافي، يجمع بين التصوير السينمائي والإخراج المتقن والمونتاج الإبداعي — إعلان صُمم ليترك انطباعًا قويًا ويعزز حضور العلامة التجارية.",
+        "link": "https://www.youtube.com/watch?v=iil8Whqe3yU",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784402421/Screenshot_2026-07-18_222009_y6wjdf.png",
+        "thumbnailAlt": "Video Thumbnail"
+      },
+      {
+        "title": "للاطلاع على المزيد من أعمالنا",
+        "category": "",
+        "categoryIcon": "",
+        "description": "إنتاج بصري احترافي، يجمع بين التصوير السينمائي والإخراج المتقن والمونتاج الإبداعي — إعلان صُمم ليترك انطباعًا قويًا ويعزز حضور العلامة التجارية.",
+        "link": "https://www.youtube.com/@hegazy-vision",
+        "thumbnail": "https://res.cloudinary.com/gaubc4t1/image/upload/v1784402572/cover-PEAK_smbbd9.png",
+        "thumbnailAlt": "Video Thumbnail"
+      }
+    ]
+  },
+  "contact": {
+    "eyebrow": "لنبدأ مشروعك",
+    "eyebrowIcon": "rocket",
+    "title": "جاهزين نحوّل [[فكرتك]] لمحتوى يصنع الأثر؟",
+    "buttons": [
+      {
+        "text": "واتساب: 01011650100",
+        "link": "https://wa.me/201011650100",
+        "icon": "chat",
+        "style": "solid"
+      }
+    ]
+  },
+  "footer": {
+    "logo": "assets/footer-logo.png",
+    "logoAlt": "Peak Vision",
+    "description": "إنتاج إعلامي وحلول بصرية — نحوّل الكاميرا إلى أداة تأثير، لا مجرد توثيق.",
+    "columns": [
+      {
+        "title": "الشركة",
+        "icon": "building",
+        "items": [
+          {
+            "icon": "aperture",
+            "text": "من نحن",
+            "link": "#about"
+          },
+          {
+            "icon": "clapper",
+            "text": "أعمالنا",
+            "link": "#work"
+          },
+          {
+            "icon": "grid",
+            "text": "خدماتنا",
+            "link": "#services"
+          }
+        ]
+      },
+      {
+        "title": "تواصل",
+        "icon": "phone",
+        "items": [
+          {
+            "icon": "chat",
+            "text": "واتساب: 01011650100",
+            "link": ""
+          },
+          {
+            "icon": "pin",
+            "text": "مدينة 6 أكتوبر، مصر",
+            "link": ""
+          },
+          {
+            "icon": "pin",
+            "text": "مدينة السادات، مصر",
+            "link": ""
+          }
+        ]
+      }
+    ],
+    "copyright": "© 2026 PEAK VISION. جميع الحقوق محفوظة.",
+    "social": [
+      {
+        "icon": "instagram",
+        "text": "Instagram",
+        "link": "#"
+      },
+      {
+        "icon": "facebook",
+        "text": "Facebook",
+        "link": "#"
+      },
+      {
+        "icon": "tiktok",
+        "text": "TikTok",
+        "link": "#"
+      }
+    ]
+  }
+}
