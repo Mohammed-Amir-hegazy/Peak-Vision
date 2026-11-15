@@ -17,7 +17,10 @@
     undo: [], redo: [],
     lastSnap: 0,
     busy: false,
-    icons: []
+    icons: [],
+    auth: null,          // { mode: 'account' | 'token', name, role, uid, k }
+    usersDoc: { v: 1, vault: null, users: [] },
+    booted: false
   };
 
   /* ============ small helpers ============ */
@@ -362,7 +365,6 @@
     var dirty = isDirty();
     s.textContent = dirty ? '● تعديلات غير منشورة' : '✓ كل التعديلات منشورة';
     s.className = 'status ' + (dirty ? 'dirty' : 'ok');
-    if (!GH.connected()) s.textContent += ' — غير مربوط بـ GitHub';
     $('#btnPublish').disabled = state.busy;
   }
 
@@ -707,6 +709,12 @@
     var scroll = ed.scrollTop;
     var page = PAGES[state.page];
     ed.replaceChildren();
+    if (page.custom) {
+      ed.appendChild(h('div', { class: 'page-head' }, h('div', null, h('h1', { text: page.title }), h('p', { text: page.desc }))));
+      renderUsersPage(ed);
+      ed.scrollTop = scroll;
+      return;
+    }
     var layoutEntry = (state.content.layout || []).filter(function (s) { return s.id === state.page; })[0];
 
     var head = h('div', { class: 'page-head' },
@@ -906,8 +914,10 @@
     return new TextDecoder().decode(bytes);
   }
   function ghErrorText(e) {
-    if (e.status === 401) return 'الـ Token غير صحيح أو انتهت صلاحيته.';
-    if (e.status === 403) return 'الـ Token مالوش صلاحية الكتابة (Contents: Read and write) على المستودع ده.';
+    var acc = state.auth && state.auth.mode === 'account';
+    var fix = isOwner() ? ' جدّده من صفحة «المستخدمين».' : ' تواصل مع المسؤول عن الموقع عشان يجدده.';
+    if (e.status === 401) return acc ? 'مفتاح الربط بـ GitHub انتهت صلاحيته أو اتلغى.' + fix : 'الـ Token غير صحيح أو انتهت صلاحيته.';
+    if (e.status === 403) return acc ? 'مفتاح الربط بـ GitHub مالوش صلاحية النشر.' + fix : 'الـ Token مالوش صلاحية الكتابة (Contents: Read and write) على المستودع ده.';
     if (e.status === 404) return 'المستودع أو الفرع أو الملف مش موجود، أو الـ Token مش مسموح له يشوف المستودع.';
     if (e.status === 409) return 'حصل تعارض — حد نشر تعديلات في نفس الوقت. جرّب تاني.';
     return e.message || 'خطأ غير معروف';
@@ -934,9 +944,14 @@
       if (!r.permissions || !r.permissions.push) throw Object.assign(new Error('no push'), { status: 403 });
       if (!GH.cfg.branch) GH.cfg.branch = r.default_branch;
       GH.save($('#ghRemember').checked);
-      try { localStorage.removeItem(LS_SKIP); } catch (x) { }
       msg.textContent = '✓ تم الربط بنجاح'; msg.className = 'dlg-msg ok';
       setTimeout(function () { $('#ghDialog').close(); }, 600);
+      if (!state.booted) {
+        // developer login from the login screen
+        clearSession();
+        state.auth = { mode: 'token', name: 'المطوّر', role: 'owner', k: null };
+        return loadUsers().then(function (d) { state.usersDoc = d; return afterAuth(); });
+      }
       toast('تم الربط بـ GitHub — تقدر تنشر دلوقتي', 'ok');
       refreshPublished(false);
     }).catch(function (err) {
@@ -945,11 +960,7 @@
       msg.textContent = '✕ ' + ghErrorText(err); msg.className = 'dlg-msg err';
     });
   });
-  $('#ghSkip').addEventListener('click', function () {
-    try { localStorage.setItem(LS_SKIP, '1'); } catch (e) { }
-    $('#ghDialog').close();
-    updateStatus();
-  });
+  $('#ghSkip').addEventListener('click', function () { $('#ghDialog').close(); });
 
   /* ---------- image upload ---------- */
   function readAsDataURL(blob) {
@@ -1104,11 +1115,14 @@
       if (isDirty() && !confirm('هيتم استبدال تعديلاتك غير المنشورة بالنسخة المنشورة. تكمل؟')) return;
       try { localStorage.removeItem(LS_DRAFT); } catch (x) { }
       refreshPublished(true);
+    } else if (act === 'password') {
+      $('#pwNew').value = ''; $('#pwNew2').value = ''; $('#pwMsg').textContent = '';
+      $('#pwDialog').showModal();
     } else if (act === 'logout') {
+      if (isDirty() && !confirm('عندك تعديلات لسه ما اتنشرتش (محفوظة على الجهاز ده). تخرج برضه؟')) return;
       try { localStorage.removeItem(LS_GH); sessionStorage.removeItem(LS_GH); } catch (x) { }
-      GH.cfg.token = '';
-      updateStatus();
-      toast('تم تسجيل الخروج — الـ Token اتمسح من الجهاز ده');
+      clearSession();
+      location.reload();
     }
   });
 
@@ -1145,10 +1159,283 @@
   document.body.appendChild(h('datalist', { id: 'pv-anchors' },
     ['#top', '#about', '#stats', '#clients', '#services', '#work', '#contact', 'https://wa.me/201011650100', 'tel:+201011650100', 'mailto:'].map(function (v) { return h('option', { value: v }); })));
 
+  /* ============ accounts: email + password login for non-technical users ============
+   * The GitHub token is stored in admin/users.json encrypted (AES-GCM) with a random master key.
+   * Each user gets a copy of that master key encrypted with a key derived from their password
+   * (PBKDF2-SHA256, 600k rounds). Nobody can read the token without a valid email + password.
+   */
+  var LS_SESSION = 'pv-admin-session', USERS_PATH = 'admin/users.json', PBKDF2_ITER = 600000;
+  var te = new TextEncoder(), td = new TextDecoder();
+  function bufToB64(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
+  function b64ToBuf(s) { var bin = atob(s), b = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; }
+  async function emailId(email) {
+    var d = await crypto.subtle.digest('SHA-256', te.encode('peak-vision:' + email.trim().toLowerCase()));
+    return Array.prototype.map.call(new Uint8Array(d), function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  }
+  async function passwordKey(pw, salt, iter) {
+    var base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
+  function rawKey(raw) { return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']); }
+  async function seal(key, obj) {
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, te.encode(JSON.stringify(obj)));
+    return { iv: bufToB64(iv), data: bufToB64(ct) };
+  }
+  async function unseal(key, box) {
+    var pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBuf(box.iv) }, key, b64ToBuf(box.data));
+    return JSON.parse(td.decode(pt));
+  }
+  function isOwner() { return state.auth && state.auth.role === 'owner'; }
+  function emptyUsers() { return { v: 1, vault: null, users: [] }; }
+
+  async function loadUsers() {
+    if (GH.connected()) {
+      try { var f = await GH.getFile(USERS_PATH); return JSON.parse(f.text); }
+      catch (e) { if (e.status === 404) return emptyUsers(); }
+    }
+    try {
+      var r = await fetch('users.json?v=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) return await r.json();
+    } catch (e) { }
+    return emptyUsers();
+  }
+  async function enterAccount(u, k) {
+    var cfg = await unseal(await rawKey(k), state.usersDoc.vault);
+    GH.cfg = Object.assign({ path: 'content.json' }, cfg);
+    state.auth = { mode: 'account', uid: u.id, name: u.name, role: u.role, k: k };
+  }
+  function loadSession() {
+    try { return JSON.parse(localStorage.getItem(LS_SESSION) || sessionStorage.getItem(LS_SESSION) || 'null'); } catch (e) { return null; }
+  }
+  function saveSession(s, remember) {
+    try {
+      localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION);
+      (remember ? localStorage : sessionStorage).setItem(LS_SESSION, JSON.stringify(s));
+    } catch (e) { }
+  }
+  function clearSession() { try { localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION); } catch (e) { } }
+  async function restoreSession(s) {
+    var u = (state.usersDoc.users || []).filter(function (x) { return x.id === s.uid; })[0];
+    if (!u || !state.usersDoc.vault) return false;           // account was removed
+    try { await enterAccount(u, b64ToBuf(s.k)); return true; } catch (e) { return false; }
+  }
+  async function login(email, pw, remember) {
+    var id = await emailId(email);
+    var u = (state.usersDoc.users || []).filter(function (x) { return x.id === id; })[0];
+    if (!u) throw new Error('bad');
+    var inner;
+    try { inner = await unseal(await passwordKey(pw, b64ToBuf(u.salt), u.iter || PBKDF2_ITER), u); }
+    catch (e) { throw new Error('bad'); }
+    await enterAccount(u, b64ToBuf(inner.k));
+    saveSession({ uid: u.id, k: inner.k }, remember);
+  }
+  async function saveUsersDoc(doc, message) {
+    var cur = await GH.getFile(USERS_PATH).catch(function (e) { if (e.status === 404) return { sha: null }; throw e; });
+    await GH.putFile(USERS_PATH, utf8ToB64(JSON.stringify(doc, null, 2) + '\n'), message, cur.sha);
+    state.usersDoc = doc;
+  }
+  function vaultCfg() { return { token: GH.cfg.token, owner: GH.cfg.owner, repo: GH.cfg.repo, branch: GH.cfg.branch || '', path: GH.cfg.path || 'content.json' }; }
+  async function wrapForPassword(k, pw) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var box = await seal(await passwordKey(pw, salt, PBKDF2_ITER), { k: bufToB64(k) });
+    return { salt: bufToB64(salt), iter: PBKDF2_ITER, iv: box.iv, data: box.data };
+  }
+  async function createUser(name, email, pw, role) {
+    var doc = clone(state.usersDoc); doc.users = doc.users || [];
+    var k = state.auth.k;
+    if (!k) {
+      if (doc.vault && doc.users.length) throw new Error('nokey');
+      k = crypto.getRandomValues(new Uint8Array(32));
+      doc.vault = null;
+    }
+    if (!doc.vault) doc.vault = await seal(await rawKey(k), vaultCfg());
+    var id = await emailId(email);
+    if (doc.users.some(function (u) { return u.id === id; })) throw new Error('exists');
+    doc.users.push(Object.assign({ id: id, name: name, role: role, created: new Date().toISOString().slice(0, 10) }, await wrapForPassword(k, pw)));
+    await saveUsersDoc(doc, 'Add admin panel user');
+    state.auth.k = k;
+  }
+  function randomPassword() {
+    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', out = '';
+    var r = crypto.getRandomValues(new Uint32Array(14));
+    for (var i = 0; i < r.length; i++) out += abc[r[i] % abc.length];
+    return out;
+  }
+
+  /* ---------- users page ---------- */
+  PAGES.users = { title: 'المستخدمين وتسجيل الدخول', desc: 'حسابات بالإيميل وكلمة المرور للعميل أو أي حد بيعدّل الموقع — من غير ما يحتاج GitHub.', custom: true };
+  function renderUsersPage(ed) {
+    var doc = state.usersDoc, users = doc.users || [], a = state.auth;
+    var noKey = !a.k && doc.vault && users.length;
+
+    var list = h('div', { class: 'card' }, h('div', { class: 'card-title' }, 'الحسابات', h('small', { text: users.length + ' حساب' })));
+    if (!users.length) list.appendChild(h('div', { class: 'empty', text: 'لسه مفيش حسابات — اعمل أول حساب من تحت.' }));
+    users.forEach(function (u) {
+      var me = a.uid === u.id;
+      list.appendChild(h('div', { class: 'user-row' },
+        h('span', { class: 'avatar', text: (u.name || '?').trim().charAt(0) }),
+        h('div', { class: 'grow' }, h('b', { text: u.name }), me ? h('span', { class: 'badge', style: 'margin-inline-start:6px', text: 'أنت' }) : null,
+          h('small', { text: (u.created ? 'اتعمل في ' + u.created : '') })),
+        h('span', { class: 'badge' + (u.role === 'owner' ? ' owner' : ''), text: u.role === 'owner' ? 'مسؤول' : 'محرر' }),
+        me ? null : h('button', { type: 'button', class: 'btn sm danger', onClick: async function () {
+          if (!confirm('حذف حساب «' + u.name + '»؟ مش هيقدر يدخل اللوحة تاني.')) return;
+          try {
+            var d2 = clone(state.usersDoc); d2.users = d2.users.filter(function (x) { return x.id !== u.id; });
+            if (!d2.users.length) d2.vault = null;
+            await saveUsersDoc(d2, 'Remove admin panel user');
+            toast('تم حذف الحساب', 'ok'); renderEditor();
+          } catch (e) { toast('فشل الحذف: ' + ghErrorText(e), 'err', 7000); }
+        } }, 'حذف')));
+    });
+    ed.appendChild(list);
+
+    if (noKey) {
+      ed.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-title', text: 'إدارة الحسابات' }),
+        h('div', { class: 'note', text: 'انت داخل بالـ GitHub Token. عشان تضيف حسابات جديدة أو تجدد مفتاح الربط، ادخل بحساب «مسؤول». لو مفيش حد عنده حساب مسؤول، تقدر تعمل إعادة ضبط — ده هيمسح كل الحسابات الحالية وتبدأ من جديد.' }),
+        h('div', { class: 'row-actions' }, h('button', { type: 'button', class: 'btn danger', onClick: async function () {
+          if (!confirm('مسح كل الحسابات الحالية والبدء من جديد؟')) return;
+          try { await saveUsersDoc(emptyUsers(), 'Reset admin panel users'); toast('تم مسح الحسابات — اعمل حسابات جديدة دلوقتي', 'ok'); renderEditor(); }
+          catch (e) { toast('فشل: ' + ghErrorText(e), 'err', 7000); }
+        } }, 'إعادة ضبط الحسابات'))));
+      return;
+    }
+
+    // add user
+    var fName = h('input', { type: 'text', placeholder: 'مثال: أحمد — مدير التسويق' });
+    var fEmail = h('input', { type: 'email', dir: 'ltr', placeholder: 'name@example.com' });
+    var fPw = h('input', { type: 'text', dir: 'ltr', value: randomPassword() });
+    var fRole = h('select', null, h('option', { value: 'editor', text: 'محرر — يعدّل المحتوى وينشر' }), h('option', { value: 'owner', text: 'مسؤول — يعدّل وكمان يدير الحسابات' }));
+    if (!users.length) fRole.value = 'owner';
+    var result = h('div');
+    var addBtn = h('button', { type: 'button', class: 'btn primary', onClick: async function () {
+      var name = fName.value.trim(), email = fEmail.value.trim(), pw = fPw.value;
+      if (!name) return toast('اكتب الاسم', 'err');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('الإيميل مش صحيح', 'err');
+      if (pw.length < 10) return toast('كلمة المرور لازم تكون 10 حروف على الأقل', 'err');
+      addBtn.disabled = true; addBtn.textContent = 'جارٍ الإنشاء…';
+      try {
+        await createUser(name, email, pw, fRole.value);
+        var link = new URL('./', location.href).href;
+        var text = 'لوحة تحكم موقع PEAK VISION\nالرابط: ' + link + '\nالإيميل: ' + email + '\nكلمة المرور: ' + pw;
+        renderEditor();
+        var box = $('#newUserResult');
+        if (box) box.replaceChildren(h('div', { class: 'share-box' },
+          h('b', { text: '✓ تم إنشاء الحساب — ابعت البيانات دي لـ ' + name + ':' }), h('pre', { text: text }),
+          h('button', { type: 'button', class: 'btn sm', onClick: function () { navigator.clipboard.writeText(text).then(function () { toast('تم النسخ', 'ok'); }); } }, 'نسخ البيانات'),
+          h('div', { class: 'hint', style: 'margin-top:6px', text: 'الحساب هيشتغل بعد دقيقة أو اتنين (لحد ما الموقع يتحدّث). احفظ كلمة المرور دلوقتي — مش هتظهر تاني.' })));
+      } catch (e) {
+        addBtn.disabled = false; addBtn.textContent = 'إنشاء الحساب';
+        toast(e.message === 'exists' ? 'الإيميل ده عليه حساب بالفعل' : e.message === 'nokey' ? 'لازم تدخل بحساب مسؤول' : 'فشل إنشاء الحساب: ' + ghErrorText(e), 'err', 7000);
+      }
+    } }, 'إنشاء الحساب');
+    ed.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-title', text: 'إضافة حساب جديد' }),
+      h('div', { class: 'fields' },
+        h('div', { class: 'field' }, h('label', { text: 'الاسم' }), fName),
+        h('div', { class: 'field' }, h('label', { text: 'البريد الإلكتروني' }), fEmail),
+        h('div', { class: 'field' }, h('label', { text: 'كلمة المرور' }), fPw,
+          h('div', { class: 'hint' }, 'اتعملت تلقائي — تقدر تغيرها (10 حروف على الأقل). ', h('a', { href: '#', onClick: function (e) { e.preventDefault(); fPw.value = randomPassword(); } }, 'توليد واحدة تانية'))),
+        h('div', { class: 'field' }, h('label', { text: 'الصلاحية' }), fRole)),
+      a.mode === 'token' && !users.length ? h('div', { class: 'note', style: 'margin-top:12px', text: 'نصيحة: اعمل لنفسك حساب «مسؤول» كمان، عشان تقدر بعدين تضيف حسابات وتجدد مفتاح الربط من غير الـ Token.' }) : null,
+      h('div', { class: 'row-actions' }, addBtn),
+      h('div', { id: 'newUserResult' }, result)));
+
+    // rotate token (needs the master key)
+    if (a.k && doc.vault) {
+      var fTok = h('input', { type: 'password', dir: 'ltr', placeholder: 'github_pat_…' });
+      var rotBtn = h('button', { type: 'button', class: 'btn', onClick: async function () {
+        var tok = fTok.value.trim();
+        if (!tok) return toast('الصق الـ Token الجديد', 'err');
+        rotBtn.disabled = true;
+        var old = GH.cfg;
+        GH.cfg = Object.assign({}, old, { token: tok });
+        try {
+          var r = await GH.api(GH.repoPath());
+          if (!r.permissions || !r.permissions.push) throw Object.assign(new Error('no push'), { status: 403 });
+          var d2 = clone(state.usersDoc);
+          d2.vault = await seal(await rawKey(a.k), vaultCfg());
+          await saveUsersDoc(d2, 'Update admin panel access key');
+          fTok.value = '';
+          toast('✓ تم تحديث مفتاح الربط لكل الحسابات', 'ok');
+        } catch (e) { GH.cfg = old; toast('فشل: ' + ghErrorText(e), 'err', 7000); }
+        rotBtn.disabled = false;
+      } }, 'تحديث المفتاح');
+      ed.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-title', text: 'مفتاح الربط بـ GitHub' }),
+        h('p', { class: 'muted', text: 'كل الحسابات بتنشر من خلال GitHub Token واحد متشفّر. لو صلاحيته خلصت أو عايز تغيره، الصق Token جديد هنا وكل الحسابات هتكمل تشتغل عادي.' }),
+        h('div', { class: 'fields', style: 'margin-top:10px' }, h('div', { class: 'field full' }, fTok)),
+        h('div', { class: 'row-actions' }, rotBtn)));
+    }
+  }
+
+  // change own password
+  $('#pwForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var p1 = $('#pwNew').value, p2 = $('#pwNew2').value, msg = $('#pwMsg');
+    if (p1.length < 10) { msg.textContent = 'كلمة المرور لازم تكون 10 حروف على الأقل'; msg.className = 'dlg-msg err'; return; }
+    if (p1 !== p2) { msg.textContent = 'الكلمتين مش زي بعض'; msg.className = 'dlg-msg err'; return; }
+    msg.textContent = 'جارٍ الحفظ…'; msg.className = 'dlg-msg';
+    try {
+      var d2 = clone(state.usersDoc);
+      var u = d2.users.filter(function (x) { return x.id === state.auth.uid; })[0];
+      Object.assign(u, await wrapForPassword(state.auth.k, p1));
+      await saveUsersDoc(d2, 'Change admin panel password');
+      msg.textContent = '✓ تم تغيير كلمة المرور'; msg.className = 'dlg-msg ok';
+      setTimeout(function () { $('#pwDialog').close(); }, 900);
+    } catch (err) { msg.textContent = '✕ ' + ghErrorText(err); msg.className = 'dlg-msg err'; }
+  });
+  $('#pwCancel').addEventListener('click', function () { $('#pwDialog').close(); });
+
+  /* ---------- login screen ---------- */
+  function showLogin() {
+    $('#login').hidden = false;
+    $('#loginLoading').hidden = true;
+    var has = (state.usersDoc.users || []).length > 0;
+    $('#loginFields').hidden = !has;
+    $('#loginEmpty').hidden = has;
+    if (has) setTimeout(function () { $('#loginEmail').focus(); }, 50);
+  }
+  $('#loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var msg = $('#loginMsg'), btn = $('#loginBtn');
+    msg.textContent = 'جارٍ التحقق…'; msg.className = 'dlg-msg'; btn.disabled = true;
+    try {
+      await login($('#loginEmail').value, $('#loginPassword').value, $('#loginRemember').checked);
+      msg.textContent = '';
+      await afterAuth();
+    } catch (err) {
+      msg.textContent = err.message === 'bad' ? '✕ الإيميل أو كلمة المرور غير صحيحة' : '✕ حصل خطأ: ' + (err.message || err);
+      msg.className = 'dlg-msg err';
+    } finally { btn.disabled = false; }
+  });
+  $('#devLogin').addEventListener('click', openGhDialog);
+  $$('[data-eye]').forEach(function (b) {
+    b.addEventListener('click', function () { var i = $('#' + b.getAttribute('data-eye')); i.type = i.type === 'password' ? 'text' : 'password'; });
+  });
+  function applyAuthUi() {
+    var a = state.auth;
+    $('#usersNav').hidden = !isOwner();
+    $('#actPassword').hidden = a.mode !== 'account';
+    $('#actGithub').hidden = a.mode !== 'token';
+    $('#who').replaceChildren('👤 ', h('b', { text: a.name }));
+  }
+
   /* ============ boot ============ */
   async function boot() {
     GH.load();
-    if (uiPrefs.page && PAGES[uiPrefs.page]) state.page = uiPrefs.page;
+    state.usersDoc = await loadUsers();
+    var s = loadSession();
+    if (s && !(await restoreSession(s))) clearSession();
+    if (!state.auth && GH.connected()) state.auth = { mode: 'token', name: 'المطوّر', role: 'owner', k: null };
+    if (!state.auth) { showLogin(); return; }
+    await afterAuth();
+  }
+
+  async function afterAuth() {
+    if (state.booted) return;
+    state.booted = true;
+    $('#login').hidden = true;
+    applyAuthUi();
+    if (uiPrefs.page && PAGES[uiPrefs.page] && (uiPrefs.page !== 'users' || isOwner())) state.page = uiPrefs.page;
 
     // icons: reuse the site's own SVG sprite so the admin shows exactly what the site shows
     try {
@@ -1168,9 +1455,7 @@
       state.content = published;
     } catch (e) {
       updateStatus('تعذّر تحميل المحتوى', 'dirty');
-      $('#editor').replaceChildren(h('div', { class: 'card' }, h('b', { text: 'تعذّر تحميل content.json' }), h('p', { class: 'muted', text: (e.status ? ghErrorText(e) : e.message) + ' — تأكد إن اللوحة شغالة من نفس مكان الموقع (وليس بفتح الملف مباشرة)، أو راجع إعدادات GitHub.' }),
-        h('button', { class: 'btn', style: 'margin-top:10px', onClick: openGhDialog }, 'إعدادات GitHub')));
-      if (GH.cfg.token) openGhDialog();
+      $('#editor').replaceChildren(h('div', { class: 'card' }, h('b', { text: 'تعذّر تحميل محتوى الموقع' }), h('p', { class: 'muted', text: e.status ? ghErrorText(e) : e.message })));
       return;
     }
 
@@ -1185,9 +1470,6 @@
     $('#previewFrame').src = new URL('index.html?preview=1', SITE_ROOT).href;
     renderAll();
     fitPreview();
-
-    var skipped = false; try { skipped = localStorage.getItem(LS_SKIP) === '1'; } catch (e) { }
-    if (!GH.connected() && !skipped) openGhDialog();
   }
   boot();
 })();
