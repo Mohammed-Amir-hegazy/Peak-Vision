@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<script>
+  // Some hosts (e.g. Vercel) serve /admin without the trailing slash, which breaks the relative paths below.
+  if (!/\/$/.test(location.pathname) && !/\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
+</script>
 <title>لوحة التحكم | PEAK VISION</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
