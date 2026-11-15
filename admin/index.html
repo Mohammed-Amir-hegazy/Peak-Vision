@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة التحكم | PEAK VISION</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div id="sprite" hidden></div>
+
+<header class="topbar">
+  <button class="icon-btn only-mobile" id="btnMenu" title="الأقسام">☰</button>
+  <div class="brand">PEAK <span>VISION</span><small>لوحة التحكم</small></div>
+  <span class="status" id="status">جارٍ التحميل…</span>
+  <div class="top-actions">
+    <button class="btn ghost" id="btnUndo" title="تراجع (Ctrl+Z)">↶</button>
+    <button class="btn ghost" id="btnRedo" title="إعادة (Ctrl+Y)">↷</button>
+    <a class="btn ghost hide-sm" id="btnViewSite" href="../" target="_blank" rel="noopener">عرض الموقع ↗</a>
+    <button class="btn ghost" id="btnPreviewToggle" title="المعاينة">معاينة</button>
+    <div class="menu-wrap">
+      <button class="btn ghost" id="btnMore">المزيد ▾</button>
+      <div class="menu" id="moreMenu" hidden>
+        <button data-act="export">⬇ تنزيل نسخة (content.json)</button>
+        <button data-act="import">⬆ استيراد نسخة</button>
+        <button data-act="discard">✕ إلغاء كل التعديلات غير المنشورة</button>
+        <button data-act="reload">⟳ إعادة تحميل المحتوى المنشور</button>
+        <button data-act="github">⚙ إعدادات الربط بـ GitHub</button>
+        <button data-act="logout">⎋ تسجيل الخروج من هذا الجهاز</button>
+      </div>
+    </div>
+    <button class="btn primary" id="btnPublish">نشر التغييرات</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-group">
+      <div class="side-title">عام</div>
+      <button class="side-item" data-page="settings"><span class="si-ico">⚙</span>الإعدادات والألوان</button>
+      <button class="side-item" data-page="header"><span class="si-ico">☰</span>الهيدر والقائمة</button>
+    </div>
+    <div class="side-group">
+      <div class="side-title">أقسام الصفحة <small>اسحب لتغيير الترتيب</small></div>
+      <div id="sectionList"></div>
+    </div>
+    <div class="side-group">
+      <div class="side-title">أسفل الصفحة</div>
+      <button class="side-item" data-page="footer"><span class="si-ico">▁</span>الفوتر والتواصل الاجتماعي</button>
+    </div>
+    <div class="side-help">
+      <b>تنسيق النصوص:</b><br>
+      <code>[[كلمة]]</code> تلوين ذهبي<br>
+      <code>{{كلمة}}</code> تلوين أحمر<br>
+      <code>**كلمة**</code> خط عريض<br>
+      سطر جديد = نزول سطر
+    </div>
+  </aside>
+
+  <main class="editor" id="editor"></main>
+
+  <section class="preview" id="preview">
+    <div class="preview-bar">
+      <span>معاينة مباشرة</span>
+      <div class="seg">
+        <button data-dev="desktop" class="on">كمبيوتر</button>
+        <button data-dev="tablet">تابلت</button>
+        <button data-dev="mobile">موبايل</button>
+      </div>
+      <button class="icon-btn" id="btnPreviewClose" title="إغلاق">✕</button>
+    </div>
+    <div class="preview-stage" id="previewStage">
+      <iframe id="previewFrame" title="معاينة الموقع"></iframe>
+    </div>
+  </section>
+</div>
+
+<!-- GitHub connection dialog -->
+<dialog id="ghDialog">
+  <form method="dialog" class="dlg" id="ghForm">
+    <h3>ربط لوحة التحكم بالموقع (GitHub)</h3>
+    <p class="muted">الموقع محفوظ على GitHub، ولوحة التحكم بتنشر التعديلات مباشرة عليه. محتاج <b>Token</b> مرة واحدة بس على كل جهاز.</p>
+    <details class="howto">
+      <summary>إزاي أعمل Token؟ (دقيقة واحدة)</summary>
+      <ol>
+        <li>افتح <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">صفحة إنشاء Token</a>.</li>
+        <li>اكتب أي اسم، واختار مدة الصلاحية.</li>
+        <li>في <b>Repository access</b> اختار <b>Only select repositories</b> واختار مستودع الموقع.</li>
+        <li>في <b>Permissions ← Repository permissions</b> خلي <b>Contents</b> = <b>Read and write</b>.</li>
+        <li>اضغط <b>Generate token</b> وانسخه والصقه هنا.</li>
+      </ol>
+    </details>
+    <div class="grid2">
+      <label>صاحب المستودع (Owner)<input id="ghOwner" dir="ltr" required></label>
+      <label>اسم المستودع (Repo)<input id="ghRepo" dir="ltr" required></label>
+      <label>الفرع (Branch)<input id="ghBranch" dir="ltr" placeholder="تلقائي"></label>
+      <label>مسار ملف المحتوى<input id="ghPath" dir="ltr" value="content.json"></label>
+    </div>
+    <label>Token<input id="ghToken" type="password" dir="ltr" autocomplete="off" placeholder="github_pat_…"></label>
+    <label class="check"><input type="checkbox" id="ghRemember" checked> تذكّرني على هذا الجهاز</label>
+    <div class="dlg-msg" id="ghMsg"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="ghSkip">متابعة بدون ربط</button>
+      <button type="submit" class="btn primary" id="ghSave">اختبار وحفظ</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Icon picker -->
+<div class="popover" id="iconPop" hidden>
+  <input type="search" id="iconSearch" placeholder="بحث…">
+  <div class="icon-grid" id="iconGrid"></div>
+</div>
+
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<div class="toasts" id="toasts"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>
