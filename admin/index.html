@@ -13,10 +13,31 @@
 
 <div id="sprite" hidden></div>
 
+<!-- Login screen (email + password) -->
+<div class="login" id="login">
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <div class="login-brand">PEAK <span>VISION</span></div>
+    <h2>تسجيل الدخول للوحة التحكم</h2>
+    <div class="login-loading" id="loginLoading">جارٍ التحميل…</div>
+    <div class="login-fields" id="loginFields" hidden>
+      <label>البريد الإلكتروني<input type="email" id="loginEmail" dir="ltr" autocomplete="username" required></label>
+      <label>كلمة المرور
+        <span class="pw-wrap"><input type="password" id="loginPassword" dir="ltr" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="loginPassword" title="إظهار">👁</button></span>
+      </label>
+      <label class="check"><input type="checkbox" id="loginRemember" checked> تذكّرني على هذا الجهاز</label>
+      <button type="submit" class="btn primary login-btn" id="loginBtn">دخول</button>
+      <div class="dlg-msg" id="loginMsg"></div>
+    </div>
+    <div class="login-empty" id="loginEmpty" hidden>لسه مفيش حسابات دخول. المسؤول عن الموقع يدخل الأول بالـ GitHub Token ويعمل الحسابات من صفحة «المستخدمين».</div>
+    <button type="button" class="login-dev" id="devLogin">دخول المطوّر (GitHub Token)</button>
+  </form>
+</div>
+
 <header class="topbar">
   <button class="icon-btn only-mobile" id="btnMenu" title="الأقسام">☰</button>
   <div class="brand">PEAK <span>VISION</span><small>لوحة التحكم</small></div>
   <span class="status" id="status">جارٍ التحميل…</span>
+  <span class="who hide-sm" id="who"></span>
   <div class="top-actions">
     <button class="btn ghost" id="btnUndo" title="تراجع (Ctrl+Z)">↶</button>
     <button class="btn ghost" id="btnRedo" title="إعادة (Ctrl+Y)">↷</button>
@@ -29,8 +50,9 @@
         <button data-act="import">⬆ استيراد نسخة</button>
         <button data-act="discard">✕ إلغاء كل التعديلات غير المنشورة</button>
         <button data-act="reload">⟳ إعادة تحميل المحتوى المنشور</button>
-        <button data-act="github">⚙ إعدادات الربط بـ GitHub</button>
-        <button data-act="logout">⎋ تسجيل الخروج من هذا الجهاز</button>
+        <button data-act="password" id="actPassword" hidden>🔑 تغيير كلمة المرور</button>
+        <button data-act="github" id="actGithub" hidden>⚙ إعدادات الربط بـ GitHub</button>
+        <button data-act="logout">⎋ تسجيل الخروج</button>
       </div>
     </div>
     <button class="btn primary" id="btnPublish">نشر التغييرات</button>
@@ -43,6 +65,7 @@
       <div class="side-title">عام</div>
       <button class="side-item" data-page="settings"><span class="si-ico">⚙</span>الإعدادات والألوان</button>
       <button class="side-item" data-page="header"><span class="si-ico">☰</span>الهيدر والقائمة</button>
+      <button class="side-item" data-page="users" id="usersNav" hidden><span class="si-ico">👤</span>المستخدمين وتسجيل الدخول</button>
     </div>
     <div class="side-group">
       <div class="side-title">أقسام الصفحة <small>اسحب لتغيير الترتيب</small></div>
@@ -104,8 +127,22 @@
     <label class="check"><input type="checkbox" id="ghRemember" checked> تذكّرني على هذا الجهاز</label>
     <div class="dlg-msg" id="ghMsg"></div>
     <div class="dlg-actions">
-      <button type="button" class="btn ghost" id="ghSkip">متابعة بدون ربط</button>
+      <button type="button" class="btn ghost" id="ghSkip">رجوع</button>
       <button type="submit" class="btn primary" id="ghSave">اختبار وحفظ</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Change password -->
+<dialog id="pwDialog">
+  <form method="dialog" class="dlg" id="pwForm">
+    <h3>تغيير كلمة المرور</h3>
+    <label>كلمة المرور الجديدة (10 حروف على الأقل)<input type="password" id="pwNew" dir="ltr" autocomplete="new-password" required minlength="10"></label>
+    <label>اكتبها تاني للتأكيد<input type="password" id="pwNew2" dir="ltr" autocomplete="new-password" required minlength="10"></label>
+    <div class="dlg-msg" id="pwMsg"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn ghost" id="pwCancel">إلغاء</button>
+      <button type="submit" class="btn primary">حفظ</button>
     </div>
   </form>
 </dialog>
