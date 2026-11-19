@@ -1,25 +1,29 @@
 /*!
  * PEAK VISION — admin panel
- * Edits content.json and publishes it to the GitHub repository that hosts the site.
+ * Normal email + password dashboard. Content and images are stored in Supabase
+ * (database + storage), so edits go live instantly — no GitHub, no tokens.
  */
 (function () {
   'use strict';
 
   var SITE_ROOT = new URL('../', location.href);
-  var LS_GH = 'pv-admin-gh', LS_DRAFT = 'pv-admin-draft', LS_SKIP = 'pv-admin-skip-gh', LS_UI = 'pv-admin-ui';
+  var LS_DRAFT = 'pv-admin-draft', LS_UI = 'pv-admin-ui', LS_SESSION = 'pv-admin-sb-session';
+  var CFG = window.PV_CONFIG || {};
+  var SB_URL = String(CFG.supabaseUrl || '').replace(/\/+$/, '');
+  var SB_KEY = CFG.supabaseAnonKey || '';
+  var BUCKET = 'site-images';
 
   var state = {
     content: null,
     publishedStr: '',
-    sha: null,
+    publishedAt: null,   // updated_at of the row we loaded (to detect edits from another device)
     page: 'hero',
-    assets: {},          // uploaded path -> data URL (so previews work before the site redeploys)
+    assets: {},          // uploaded URL -> data URL (instant thumbnails)
     undo: [], redo: [],
     lastSnap: 0,
     busy: false,
     icons: [],
-    auth: null,          // { mode: 'account' | 'token', name, role, uid, k }
-    usersDoc: { v: 1, vault: null, users: [] },
+    session: null,       // { access_token, refresh_token, expires_at, email }
     booted: false
   };
 
@@ -63,7 +67,13 @@
     return o;
   }
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
-  function serialize(c) { return JSON.stringify(c, null, 2) + '\n'; }
+  // Stable JSON (sorted keys): the database (jsonb) doesn't keep key order, so comparisons must not depend on it.
+  function sortKeys(x) {
+    if (Array.isArray(x)) return x.map(sortKeys);
+    if (x && typeof x === 'object') return Object.keys(x).sort().reduce(function (o, k) { o[k] = sortKeys(x[k]); return o; }, {});
+    return x;
+  }
+  function serialize(c) { return JSON.stringify(sortKeys(c), null, 2) + '\n'; }
   function debounce(fn, ms) { var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
   function resolveUrl(u) {
     if (!u) return '';
@@ -709,12 +719,6 @@
     var scroll = ed.scrollTop;
     var page = PAGES[state.page];
     ed.replaceChildren();
-    if (page.custom) {
-      ed.appendChild(h('div', { class: 'page-head' }, h('div', null, h('h1', { text: page.title }), h('p', { text: page.desc }))));
-      renderUsersPage(ed);
-      ed.scrollTop = scroll;
-      return;
-    }
     var layoutEntry = (state.content.layout || []).filter(function (s) { return s.id === state.page; })[0];
 
     var head = h('div', { class: 'page-head' },
@@ -836,177 +840,95 @@
     if (e.data.type === 'pv:ready') { previewReady = true; sendPreview(); postToPreview({ type: 'pv:scroll', id: state.page }); }
   });
 
-  /* ============ GitHub ============ */
-  var GH = {
-    cfg: {},
-    load: function () {
-      var raw = null;
-      try { raw = localStorage.getItem(LS_GH) || sessionStorage.getItem(LS_GH); } catch (e) { }
-      this.cfg = raw ? JSON.parse(raw) : {};
-      if (!this.cfg.owner) {
-        var guess = guessRepo();
-        this.cfg.owner = guess.owner; this.cfg.repo = guess.repo;
-      }
-      if (!this.cfg.path) this.cfg.path = 'content.json';
-    },
-    save: function (remember) {
-      var s = JSON.stringify(this.cfg);
-      try {
-        localStorage.removeItem(LS_GH); sessionStorage.removeItem(LS_GH);
-        (remember ? localStorage : sessionStorage).setItem(LS_GH, s);
-      } catch (e) { }
-    },
-    connected: function () { return !!(this.cfg.token && this.cfg.owner && this.cfg.repo); },
-    api: function (path, opts) {
-      opts = opts || {};
-      var headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', Authorization: 'Bearer ' + this.cfg.token };
-      if (opts.body) headers['Content-Type'] = 'application/json';
-      return fetch('https://api.github.com' + path, { method: opts.method || 'GET', headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined, cache: 'no-store' })
-        .then(function (r) {
-          return r.text().then(function (t) {
-            var j = null; try { j = t ? JSON.parse(t) : null; } catch (e) { }
-            if (!r.ok) { var err = new Error((j && j.message) || ('HTTP ' + r.status)); err.status = r.status; throw err; }
-            return j;
-          });
-        });
-    },
-    repoPath: function () { return '/repos/' + encodeURIComponent(this.cfg.owner) + '/' + encodeURIComponent(this.cfg.repo); },
-    filePath: function (p) { return this.repoPath() + '/contents/' + p.split('/').map(encodeURIComponent).join('/'); },
-    ensureBranch: function () {
-      var self = this;
-      if (self.cfg.branch) return Promise.resolve(self.cfg.branch);
-      return self.api(self.repoPath()).then(function (r) { self.cfg.branch = r.default_branch; return r.default_branch; });
-    },
-    getFile: function (p) {
-      var self = this;
-      return self.ensureBranch().then(function (br) {
-        return self.api(self.filePath(p) + '?ref=' + encodeURIComponent(br));
-      }).then(function (j) {
-        return { sha: j.sha, text: b64ToUtf8(j.content || '') };
-      });
-    },
-    putFile: function (p, b64, message, sha) {
-      var self = this;
-      return self.ensureBranch().then(function (br) {
-        var body = { message: message, content: b64, branch: br };
-        if (sha) body.sha = sha;
-        return self.api(self.filePath(p), { method: 'PUT', body: body });
-      });
-    }
-  };
-  function guessRepo() {
-    var host = location.hostname;
-    if (/\.github\.io$/i.test(host)) {
-      var owner = host.split('.')[0];
-      var seg = location.pathname.split('/').filter(Boolean)[0];
-      return { owner: owner, repo: seg && seg !== 'admin' ? seg : host };
-    }
-    return { owner: 'Mohammed-Amir-hegazy', repo: 'Peak-Vision' };
+
+  /* ============ Supabase: login, database, image storage ============ */
+  function sbError(status, j) {
+    var e = new Error((j && (j.msg || j.message || j.error_description || j.error)) || ('HTTP ' + status));
+    e.status = status;
+    e.code = j && (j.error_code || j.code || j.error);
+    return e;
   }
-  function utf8ToB64(str) {
-    var bytes = new TextEncoder().encode(str), bin = '';
-    for (var i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-    return btoa(bin);
+  async function sbFetch(path, opts) {
+    opts = opts || {};
+    if (opts.auth) await ensureFreshSession();
+    var hd = { apikey: SB_KEY };
+    if (opts.auth && state.session) hd.Authorization = 'Bearer ' + state.session.access_token;
+    Object.assign(hd, opts.headers || {});
+    var body = opts.body;
+    if (body != null && !(body instanceof Blob) && typeof body !== 'string') { body = JSON.stringify(body); hd['Content-Type'] = 'application/json'; }
+    var r = await fetch(SB_URL + path, { method: opts.method || 'GET', headers: hd, body: body, cache: 'no-store' });
+    var t = await r.text(), j = null;
+    try { j = t ? JSON.parse(t) : null; } catch (e) { }
+    if (!r.ok) throw sbError(r.status, j);
+    return j;
   }
-  function b64ToUtf8(b64) {
-    var bin = atob(b64.replace(/\s/g, '')), bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  }
-  function ghErrorText(e) {
-    var acc = state.auth && state.auth.mode === 'account';
-    var fix = isOwner() ? ' جدّده من صفحة «المستخدمين».' : ' تواصل مع المسؤول عن الموقع عشان يجدده.';
-    if (e.status === 401) return acc ? 'مفتاح الربط بـ GitHub انتهت صلاحيته أو اتلغى.' + fix : 'الـ Token غير صحيح أو انتهت صلاحيته.';
-    if (e.status === 403) return acc ? 'مفتاح الربط بـ GitHub مالوش صلاحية النشر.' + fix : 'الـ Token مالوش صلاحية الكتابة (Contents: Read and write) على المستودع ده.';
-    if (e.status === 404) return 'المستودع أو الفرع أو الملف مش موجود، أو الـ Token مش مسموح له يشوف المستودع.';
-    if (e.status === 409) return 'حصل تعارض — حد نشر تعديلات في نفس الوقت. جرّب تاني.';
-    return e.message || 'خطأ غير معروف';
+  function errText(e) {
+    var m = String((e && e.message) || '');
+    if (e instanceof TypeError || /Failed to fetch|NetworkError/i.test(m)) return 'مفيش اتصال بالإنترنت أو قاعدة البيانات مش متاحة دلوقتي.';
+    if (e.code === 'invalid_credentials' || /invalid login credentials/i.test(m)) return 'الإيميل أو كلمة المرور غير صحيحة';
+    if (e.code === 'email_not_confirmed' || /email not confirmed/i.test(m)) return 'الحساب لسه ما اتأكدش — فعّله من لوحة Supabase.';
+    if (e.code === 'not_admin') return 'الحساب ده مش مسموح له يعدّل الموقع.';
+    if (e.code === '42501' || /row-level security|permission denied/i.test(m) || e.status === 403) return 'الحساب ده مالوش صلاحية التعديل على الموقع.';
+    if (e.status === 401) return 'انتهت الجلسة — سجّل دخول تاني.';
+    if (e.code === 'weak_password' || /password should/i.test(m)) return 'كلمة المرور ضعيفة — استخدم 10 حروف على الأقل.';
+    if (e.code === 'same_password') return 'دي نفس كلمة المرور القديمة.';
+    if (e.status === 429 || e.code === 'over_email_send_rate_limit') return 'محاولات كتير ورا بعض — استنى شوية وجرّب تاني.';
+    return m || 'خطأ غير معروف';
   }
 
-  function openGhDialog() {
-    var d = $('#ghDialog');
-    $('#ghOwner').value = GH.cfg.owner || '';
-    $('#ghRepo').value = GH.cfg.repo || '';
-    $('#ghBranch').value = GH.cfg.branch || '';
-    $('#ghPath').value = GH.cfg.path || 'content.json';
-    $('#ghToken').value = GH.cfg.token || '';
-    $('#ghMsg').textContent = ''; $('#ghMsg').className = 'dlg-msg';
-    if (!d.open) d.showModal();
-  }
-  $('#ghForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var msg = $('#ghMsg');
-    var prev = GH.cfg;
-    GH.cfg = { owner: $('#ghOwner').value.trim(), repo: $('#ghRepo').value.trim(), branch: $('#ghBranch').value.trim(), path: $('#ghPath').value.trim() || 'content.json', token: $('#ghToken').value.trim() };
-    if (!GH.cfg.token) { msg.textContent = 'اكتب الـ Token'; msg.className = 'dlg-msg err'; return; }
-    msg.textContent = 'جارٍ الاختبار…'; msg.className = 'dlg-msg';
-    GH.api(GH.repoPath()).then(function (r) {
-      if (!r.permissions || !r.permissions.push) throw Object.assign(new Error('no push'), { status: 403 });
-      if (!GH.cfg.branch) GH.cfg.branch = r.default_branch;
-      GH.save($('#ghRemember').checked);
-      msg.textContent = '✓ تم الربط بنجاح'; msg.className = 'dlg-msg ok';
-      setTimeout(function () { $('#ghDialog').close(); }, 600);
-      if (!state.booted) {
-        // developer login from the login screen
-        clearSession();
-        state.auth = { mode: 'token', name: 'المطوّر', role: 'owner', k: null };
-        return loadUsers().then(function (d) { state.usersDoc = d; return afterAuth(); });
-      }
-      toast('تم الربط بـ GitHub — تقدر تنشر دلوقتي', 'ok');
-      refreshPublished(false);
-    }).catch(function (err) {
-      GH.cfg = prev.token ? prev : GH.cfg;
-      if (!prev.token) GH.cfg.token = '';
-      msg.textContent = '✕ ' + ghErrorText(err); msg.className = 'dlg-msg err';
-    });
-  });
-  $('#ghSkip').addEventListener('click', function () { $('#ghDialog').close(); });
-
-  /* ---------- image upload ---------- */
-  function readAsDataURL(blob) {
-    return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsDataURL(blob); });
-  }
-  async function shrink(file) {
-    // Large photos are resized (max 2000px) and re-encoded to keep the site fast.
-    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 500 * 1024) return { blob: file, ext: (file.name.split('.').pop() || 'png').toLowerCase() };
+  /* ---------- session ---------- */
+  var refreshing = null;
+  function setSession(j, remember) {
+    state.session = {
+      access_token: j.access_token,
+      refresh_token: j.refresh_token,
+      expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (parseInt(j.expires_in, 10) || 3600),
+      email: (j.user && j.user.email) || (state.session && state.session.email) || ''
+    };
+    if (remember != null) state.remember = remember;
     try {
-      var bmp = await createImageBitmap(file);
-      var sc = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
-      var cv = document.createElement('canvas');
-      cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc);
-      cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
-      var blob = await new Promise(function (r) { cv.toBlob(r, 'image/webp', 0.86); });
-      if (blob && blob.size < file.size) return { blob: blob, ext: 'webp' };
+      localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION);
+      (state.remember === false ? sessionStorage : localStorage).setItem(LS_SESSION, JSON.stringify(state.session));
     } catch (e) { }
-    return { blob: file, ext: (file.name.split('.').pop() || 'png').toLowerCase() };
   }
-  async function uploadImage(file, prefix) {
-    if (!GH.connected()) {
-      toast('لرفع الصور لازم تربط اللوحة بـ GitHub الأول — أو الصق رابط صورة في الخانة', 'err', 6000);
-      openGhDialog();
-      return null;
-    }
-    if (file.size > 20 * 1024 * 1024) { toast('الصورة كبيرة جدًا (الحد 20MB)', 'err'); return null; }
-    updateStatus((prefix || '') + 'جارٍ رفع ' + file.name + '…', 'busy');
+  function loadStoredSession() {
     try {
-      var s = await shrink(file);
-      var dataUrl = await readAsDataURL(s.blob);
-      var base = file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'image';
-      var d = new Date();
-      var path = 'uploads/' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '/' + Date.now().toString(36) + '-' + base + '.' + s.ext;
-      await GH.putFile(path, dataUrl.split(',')[1], 'Upload image ' + path + ' (admin panel)');
-      state.assets[path] = dataUrl;
-      toast('✓ تم رفع الصورة — اضغط «نشر التغييرات» عشان تظهر في الموقع', 'ok');
-      return path;
-    } catch (e) {
-      toast('فشل رفع الصورة: ' + ghErrorText(e), 'err', 7000);
-      return null;
-    } finally {
-      updateStatus();
+      var s = localStorage.getItem(LS_SESSION), rem = true;
+      if (!s) { s = sessionStorage.getItem(LS_SESSION); rem = false; }
+      if (!s) return null;
+      state.remember = rem;
+      return JSON.parse(s);
+    } catch (e) { return null; }
+  }
+  function clearSession() {
+    state.session = null;
+    try { localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION); } catch (e) { }
+  }
+  async function ensureFreshSession() {
+    if (!state.session) throw sbError(401, { msg: 'not signed in' });
+    if (state.session.expires_at - 90 > Date.now() / 1000) return;
+    if (!refreshing) {
+      refreshing = sbFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: state.session.refresh_token } })
+        .then(function (j) { setSession(j); })
+        .finally(function () { refreshing = null; });
     }
+    return refreshing;
+  }
+  async function checkAdmin() {
+    var ok = await sbFetch('/rest/v1/rpc/is_site_admin', { method: 'POST', auth: true, body: {} });
+    if (ok !== true) throw sbError(403, { code: 'not_admin', msg: 'not admin' });
+  }
+  async function signIn(email, pw, remember) {
+    var j = await sbFetch('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: email.trim(), password: pw } });
+    setSession(j, remember);
+    try { await checkAdmin(); } catch (e) { clearSession(); throw e; }
+  }
+  async function signOut() {
+    try { if (state.session) await sbFetch('/auth/v1/logout', { method: 'POST', auth: true }); } catch (e) { }
+    clearSession();
   }
 
-  /* ---------- load & publish ---------- */
+  /* ---------- content ---------- */
   function normalize(c) {
     c.settings = c.settings || {};
     c.theme = c.theme || {};
@@ -1019,53 +941,197 @@
     });
     return c;
   }
-
-  function fetchPublished() {
-    if (GH.connected()) {
-      return GH.getFile(GH.cfg.path).then(function (f) { return { text: f.text, sha: f.sha }; });
-    }
-    return fetch(new URL('content.json?v=' + Date.now(), SITE_ROOT), { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(function (t) { return { text: t, sha: null }; });
+  // Published content: the database row, or (before the first publish) the content.json file.
+  async function fetchPublished() {
+    var rows = await sbFetch('/rest/v1/site_content?id=eq.main&select=data,updated_at', { auth: true });
+    if (rows && rows[0]) return { content: rows[0].data, updatedAt: rows[0].updated_at, fromDb: true };
+    var r = await fetch(new URL('content.json?v=' + Date.now(), SITE_ROOT), { cache: 'no-store' });
+    if (!r.ok) throw new Error('content.json: HTTP ' + r.status);
+    return { content: await r.json(), updatedAt: null, fromDb: false };
   }
-
-  function refreshPublished(replaceContent) {
-    return fetchPublished().then(function (f) {
-      var published = normalize(JSON.parse(f.text));
-      state.publishedStr = serialize(published);
-      state.sha = f.sha;
+  async function refreshPublished(replaceContent) {
+    try {
+      var f = await fetchPublished();
+      var published = normalize(f.content);
+      state.publishedStr = f.fromDb ? serialize(published) : '';
+      state.publishedAt = f.updatedAt;
       if (replaceContent) { state.content = published; renderAll(); }
       updateStatus();
-    }).catch(function (e) {
-      toast('تعذّر تحميل المحتوى من GitHub: ' + ghErrorText(e), 'err', 7000);
-    });
+    } catch (e) { toast('تعذّر تحميل المحتوى: ' + errText(e), 'err', 7000); }
   }
 
   async function publish() {
     if (state.busy) return;
-    if (!GH.connected()) { openGhDialog(); return; }
     if (!isDirty()) { toast('مفيش تعديلات جديدة للنشر'); return; }
     state.busy = true;
     updateStatus('جارٍ النشر…', 'busy');
-    $('#btnPublish').disabled = true;
     try {
-      var remote = await GH.getFile(GH.cfg.path).catch(function (e) { if (e.status === 404) return { sha: null, text: '' }; throw e; });
-      if (remote.text && state.publishedStr && serialize(normalize(JSON.parse(remote.text))) !== state.publishedStr) {
-        if (!confirm('المحتوى المنشور اتغير من جهاز تاني بعد ما فتحت اللوحة.\nلو كملت، تعديلاتك هتستبدله بالكامل. تكمل؟')) { return; }
+      var rows = await sbFetch('/rest/v1/site_content?id=eq.main&select=updated_at', { auth: true });
+      var remoteAt = rows && rows[0] ? rows[0].updated_at : null;
+      if (remoteAt && remoteAt !== state.publishedAt) {
+        if (!confirm('المحتوى المنشور اتعدّل من جهاز تاني بعد ما فتحت اللوحة.\nلو كمّلت، تعديلاتك هتستبدله. (النسخة القديمة هتفضل محفوظة في «النسخ السابقة»)\nتكمل؟')) return;
       }
-      var text = serialize(state.content);
-      var res = await GH.putFile(GH.cfg.path, utf8ToB64(text), 'Update site content (admin panel)', remote.sha);
-      state.sha = res && res.content ? res.content.sha : null;
-      state.publishedStr = text;
+      var res = await sbFetch('/rest/v1/site_content?on_conflict=id', {
+        method: 'POST', auth: true,
+        headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: { id: 'main', data: state.content }
+      });
+      state.publishedAt = res && res[0] ? res[0].updated_at : null;
+      state.publishedStr = serialize(state.content);
       try { localStorage.removeItem(LS_DRAFT); } catch (e) { }
-      toast('✓ تم النشر بنجاح! التعديلات هتظهر على الموقع خلال دقيقة أو اتنين.', 'ok', 7000);
+      toast('✓ تم النشر — التعديلات ظاهرة على الموقع دلوقتي', 'ok', 6000);
     } catch (e) {
-      toast('فشل النشر: ' + ghErrorText(e), 'err', 8000);
+      toast('فشل النشر: ' + errText(e), 'err', 8000);
     } finally {
       state.busy = false;
       updateStatus();
     }
   }
+
+  /* ---------- version history ---------- */
+  async function openHistory() {
+    var d = $('#historyDialog'), list = $('#historyList');
+    list.replaceChildren(h('div', { class: 'muted', text: 'جارٍ التحميل…' }));
+    d.showModal();
+    try {
+      var rows = await sbFetch('/rest/v1/site_content_history?content_id=eq.main&select=id,saved_at,saved_by&order=id.desc&limit=50', { auth: true });
+      list.replaceChildren();
+      if (!rows.length) { list.appendChild(h('div', { class: 'empty', text: 'لسه مفيش نسخ سابقة — بتتسجل تلقائي مع كل نشر.' })); return; }
+      rows.forEach(function (r) {
+        var when = new Date(r.saved_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+        list.appendChild(h('div', { class: 'user-row' },
+          h('div', { class: 'grow' }, h('b', { text: when }), h('small', { text: r.saved_by || '' })),
+          h('button', { type: 'button', class: 'btn sm', onClick: async function () {
+            try {
+              var v = await sbFetch('/rest/v1/site_content_history?id=eq.' + r.id + '&select=data', { auth: true });
+              snapshot(true);
+              state.content = normalize(v[0].data);
+              changed(true); renderEditor();
+              d.close();
+              toast('تم تحميل نسخة ' + when + ' — راجعها في المعاينة واضغط «نشر» لو عايز ترجّعها', 'ok', 8000);
+            } catch (e) { toast('فشل: ' + errText(e), 'err'); }
+          } }, 'استرجاع')));
+      });
+    } catch (e) { list.replaceChildren(h('div', { class: 'dlg-msg err', text: errText(e) })); }
+  }
+  $('#historyClose').addEventListener('click', function () { $('#historyDialog').close(); });
+
+  /* ---------- image upload ---------- */
+  function readAsDataURL(blob) {
+    return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.onerror = rej; r.readAsDataURL(blob); });
+  }
+  async function shrink(file) {
+    // Large photos are resized (max 2000px) and re-encoded to keep the site fast.
+    var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 500 * 1024) return { blob: file, ext: ext };
+    try {
+      var bmp = await createImageBitmap(file);
+      var sc = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc);
+      cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+      var blob = await new Promise(function (r) { cv.toBlob(r, 'image/webp', 0.86); });
+      if (blob && blob.size < file.size) return { blob: blob, ext: 'webp' };
+    } catch (e) { }
+    return { blob: file, ext: ext };
+  }
+  async function uploadImage(file, prefix) {
+    if (!/^image\//.test(file.type)) { toast('الملف ده مش صورة', 'err'); return null; }
+    if (file.size > 20 * 1024 * 1024) { toast('الصورة كبيرة جدًا (الحد 20MB)', 'err'); return null; }
+    updateStatus((prefix || '') + 'جارٍ رفع ' + file.name + '…', 'busy');
+    try {
+      var s = await shrink(file);
+      var base = file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'image';
+      var d = new Date();
+      var path = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '/' + Date.now().toString(36) + '-' + base + '.' + s.ext;
+      await sbFetch('/storage/v1/object/' + BUCKET + '/' + path, {
+        method: 'POST', auth: true, body: s.blob,
+        headers: { 'Content-Type': s.blob.type || file.type || 'application/octet-stream', 'cache-control': 'max-age=31536000' }
+      });
+      var url = SB_URL + '/storage/v1/object/public/' + BUCKET + '/' + path;
+      state.assets[url] = await readAsDataURL(s.blob);
+      toast('✓ تم رفع الصورة — اضغط «نشر التغييرات» عشان تظهر في الموقع', 'ok');
+      return url;
+    } catch (e) {
+      toast('فشل رفع الصورة: ' + errText(e), 'err', 7000);
+      return null;
+    } finally {
+      updateStatus();
+    }
+  }
+
+  /* ---------- change password ---------- */
+  var forcedPassword = false;   // after a "forgot password" link
+  function openPasswordDialog(forced) {
+    forcedPassword = !!forced;
+    $('#pwTitle').textContent = forced ? 'اختار كلمة مرور جديدة' : 'تغيير كلمة المرور';
+    $('#pwCancel').hidden = !!forced;
+    $('#pwNew').value = ''; $('#pwNew2').value = ''; $('#pwMsg').textContent = ''; $('#pwMsg').className = 'dlg-msg';
+    $('#pwDialog').showModal();
+  }
+  $('#pwDialog').addEventListener('cancel', function (e) { if (forcedPassword) e.preventDefault(); });
+  $('#pwForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var p1 = $('#pwNew').value, p2 = $('#pwNew2').value, msg = $('#pwMsg');
+    if (p1.length < 10) { msg.textContent = 'كلمة المرور لازم تكون 10 حروف على الأقل'; msg.className = 'dlg-msg err'; return; }
+    if (p1 !== p2) { msg.textContent = 'الكلمتين مش زي بعض'; msg.className = 'dlg-msg err'; return; }
+    msg.textContent = 'جارٍ الحفظ…'; msg.className = 'dlg-msg';
+    try {
+      await sbFetch('/auth/v1/user', { method: 'PUT', auth: true, body: { password: p1 } });
+      msg.textContent = '✓ تم حفظ كلمة المرور'; msg.className = 'dlg-msg ok';
+      var wasForced = forcedPassword;
+      setTimeout(function () { forcedPassword = false; $('#pwDialog').close(); if (wasForced) startPanel(); }, 900);
+    } catch (err) { msg.textContent = '✕ ' + errText(err); msg.className = 'dlg-msg err'; }
+  });
+  $('#pwCancel').addEventListener('click', function () { $('#pwDialog').close(); });
+
+  /* ---------- login screen ---------- */
+  function showLogin(note) {
+    $('#login').hidden = false;
+    $('#loginLoading').hidden = true;
+    var ok = !!(SB_URL && SB_KEY);
+    $('#loginFields').hidden = !ok;
+    $('#loginSetup').hidden = ok;
+    if (note) { $('#loginMsg').textContent = note; $('#loginMsg').className = 'dlg-msg err'; }
+    if (ok) setTimeout(function () { $('#loginEmail').focus(); }, 50);
+  }
+  $('#loginForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var msg = $('#loginMsg'), btn = $('#loginBtn');
+    msg.textContent = 'جارٍ الدخول…'; msg.className = 'dlg-msg'; btn.disabled = true;
+    try {
+      await signIn($('#loginEmail').value, $('#loginPassword').value, $('#loginRemember').checked);
+      msg.textContent = '';
+      $('#loginPassword').value = '';
+      await startPanel();
+    } catch (err) {
+      msg.textContent = '✕ ' + errText(err); msg.className = 'dlg-msg err';
+    } finally { btn.disabled = false; }
+  });
+  $('#forgotLink').addEventListener('click', async function () {
+    var email = $('#loginEmail').value.trim(), msg = $('#loginMsg');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = 'اكتب الإيميل بتاعك الأول، وبعدين اضغط «نسيت كلمة المرور»'; msg.className = 'dlg-msg err'; $('#loginEmail').focus(); return; }
+    msg.textContent = 'جارٍ الإرسال…'; msg.className = 'dlg-msg';
+    try {
+      await sbFetch('/auth/v1/recover?redirect_to=' + encodeURIComponent(location.href.split('#')[0]), { method: 'POST', body: { email: email } });
+      msg.textContent = '✓ لو الإيميل ده عليه حساب، هيوصلك رابط لتغيير كلمة المرور. افتحه من نفس الجهاز ده.'; msg.className = 'dlg-msg ok';
+    } catch (err) { msg.textContent = '✕ ' + errText(err); msg.className = 'dlg-msg err'; }
+  });
+  $$('[data-eye]').forEach(function (b) {
+    b.addEventListener('click', function () { var i = $('#' + b.getAttribute('data-eye')); i.type = i.type === 'password' ? 'text' : 'password'; });
+  });
+
+  /* ============ wiring ============ */
+  function renderAll() { renderSidebar(); renderEditor(); updateUndoButtons(); updateStatus(); sendPreview(); }
+
+  $$('.sidebar .side-item[data-page]').forEach(function (b) {
+    b.addEventListener('click', function () { go(b.getAttribute('data-page')); });
+  });
+  $('#btnPublish').addEventListener('click', publish);
+  $('#btnUndo').addEventListener('click', function () { undoRedo(state.undo, state.redo); });
+  $('#btnRedo').addEventListener('click', function () { undoRedo(state.redo, state.undo); });
+  $('#btnMenu').addEventListener('click', function () { $('#sidebar').classList.toggle('open'); });
+  $('#btnMore').addEventListener('click', function (e) { e.stopPropagation(); $('#moreMenu').hidden = !$('#moreMenu').hidden; });
 
   function exportJson() {
     var blob = new Blob([serialize(state.content)], { type: 'application/json' });
@@ -1086,42 +1152,27 @@
     }).catch(function () { toast('الملف ده مش نسخة صحيحة من محتوى الموقع', 'err'); });
   });
 
-  /* ============ wiring ============ */
-  function renderAll() { renderSidebar(); renderEditor(); updateUndoButtons(); updateStatus(); sendPreview(); }
-
-  $$('.sidebar .side-item[data-page]').forEach(function (b) {
-    b.addEventListener('click', function () { go(b.getAttribute('data-page')); });
-  });
-  $('#btnPublish').addEventListener('click', publish);
-  $('#btnUndo').addEventListener('click', function () { undoRedo(state.undo, state.redo); });
-  $('#btnRedo').addEventListener('click', function () { undoRedo(state.redo, state.undo); });
-  $('#btnMenu').addEventListener('click', function () { $('#sidebar').classList.toggle('open'); });
-  $('#btnMore').addEventListener('click', function (e) { e.stopPropagation(); $('#moreMenu').hidden = !$('#moreMenu').hidden; });
-  $('#moreMenu').addEventListener('click', function (e) {
+  $('#moreMenu').addEventListener('click', async function (e) {
     var b = e.target.closest('[data-act]'); if (!b) return;
     $('#moreMenu').hidden = true;
     var act = b.getAttribute('data-act');
     if (act === 'export') exportJson();
     else if (act === 'import') $('#importFile').click();
-    else if (act === 'github') openGhDialog();
+    else if (act === 'history') openHistory();
+    else if (act === 'password') openPasswordDialog(false);
     else if (act === 'discard') {
       if (!isDirty()) { toast('مفيش تعديلات غير منشورة'); return; }
       if (!confirm('إلغاء كل التعديلات اللي ما اتنشرتش والرجوع للنسخة المنشورة؟')) return;
-      snapshot(true);
-      state.content = normalize(JSON.parse(state.publishedStr));
       try { localStorage.removeItem(LS_DRAFT); } catch (x) { }
-      changed(true); renderEditor();
+      snapshot(true);
+      await refreshPublished(true);
     } else if (act === 'reload') {
       if (isDirty() && !confirm('هيتم استبدال تعديلاتك غير المنشورة بالنسخة المنشورة. تكمل؟')) return;
       try { localStorage.removeItem(LS_DRAFT); } catch (x) { }
       refreshPublished(true);
-    } else if (act === 'password') {
-      $('#pwNew').value = ''; $('#pwNew2').value = ''; $('#pwMsg').textContent = '';
-      $('#pwDialog').showModal();
     } else if (act === 'logout') {
       if (isDirty() && !confirm('عندك تعديلات لسه ما اتنشرتش (محفوظة على الجهاز ده). تخرج برضه؟')) return;
-      try { localStorage.removeItem(LS_GH); sessionStorage.removeItem(LS_GH); } catch (x) { }
-      clearSession();
+      await signOut();
       location.reload();
     }
   });
@@ -1148,7 +1199,7 @@
   window.addEventListener('resize', fitPreview);
 
   document.addEventListener('keydown', function (e) {
-    if (!(e.ctrlKey || e.metaKey)) return;
+    if (!(e.ctrlKey || e.metaKey) || !state.booted) return;
     var k = e.key.toLowerCase();
     if (k === 's') { e.preventDefault(); publish(); }
     else if ((k === 'z' && !e.shiftKey) && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); undoRedo(state.undo, state.redo); }
@@ -1159,283 +1210,53 @@
   document.body.appendChild(h('datalist', { id: 'pv-anchors' },
     ['#top', '#about', '#stats', '#clients', '#services', '#work', '#contact', 'https://wa.me/201011650100', 'tel:+201011650100', 'mailto:'].map(function (v) { return h('option', { value: v }); })));
 
-  /* ============ accounts: email + password login for non-technical users ============
-   * The GitHub token is stored in admin/users.json encrypted (AES-GCM) with a random master key.
-   * Each user gets a copy of that master key encrypted with a key derived from their password
-   * (PBKDF2-SHA256, 600k rounds). Nobody can read the token without a valid email + password.
-   */
-  var LS_SESSION = 'pv-admin-session', USERS_PATH = 'admin/users.json', PBKDF2_ITER = 600000;
-  var te = new TextEncoder(), td = new TextDecoder();
-  function bufToB64(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
-  function b64ToBuf(s) { var bin = atob(s), b = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; }
-  async function emailId(email) {
-    var d = await crypto.subtle.digest('SHA-256', te.encode('peak-vision:' + email.trim().toLowerCase()));
-    return Array.prototype.map.call(new Uint8Array(d), function (x) { return x.toString(16).padStart(2, '0'); }).join('');
-  }
-  async function passwordKey(pw, salt, iter) {
-    var base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-  }
-  function rawKey(raw) { return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']); }
-  async function seal(key, obj) {
-    var iv = crypto.getRandomValues(new Uint8Array(12));
-    var ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, te.encode(JSON.stringify(obj)));
-    return { iv: bufToB64(iv), data: bufToB64(ct) };
-  }
-  async function unseal(key, box) {
-    var pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64ToBuf(box.iv) }, key, b64ToBuf(box.data));
-    return JSON.parse(td.decode(pt));
-  }
-  function isOwner() { return state.auth && state.auth.role === 'owner'; }
-  function emptyUsers() { return { v: 1, vault: null, users: [] }; }
+  /* ============ boot ============ */
+  async function boot() {
+    if (!SB_URL || !SB_KEY) { showLogin(); return; }
 
-  async function loadUsers() {
-    if (GH.connected()) {
-      try { var f = await GH.getFile(USERS_PATH); return JSON.parse(f.text); }
-      catch (e) { if (e.status === 404) return emptyUsers(); }
+    // Coming back from a "forgot password" e-mail: #access_token=…&type=recovery
+    var hp = new URLSearchParams(location.hash.slice(1));
+    if (hp.get('error_description')) {
+      history.replaceState(null, '', location.pathname + location.search);
+      showLogin('✕ ' + (/expired|invalid/i.test(hp.get('error_description')) ? 'رابط تغيير كلمة المرور انتهى أو اتستخدم قبل كده — اطلب رابط جديد.' : hp.get('error_description')));
+      return;
     }
-    try {
-      var r = await fetch('users.json?v=' + Date.now(), { cache: 'no-store' });
-      if (r.ok) return await r.json();
-    } catch (e) { }
-    return emptyUsers();
-  }
-  async function enterAccount(u, k) {
-    var cfg = await unseal(await rawKey(k), state.usersDoc.vault);
-    GH.cfg = Object.assign({ path: 'content.json' }, cfg);
-    state.auth = { mode: 'account', uid: u.id, name: u.name, role: u.role, k: k };
-  }
-  function loadSession() {
-    try { return JSON.parse(localStorage.getItem(LS_SESSION) || sessionStorage.getItem(LS_SESSION) || 'null'); } catch (e) { return null; }
-  }
-  function saveSession(s, remember) {
-    try {
-      localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION);
-      (remember ? localStorage : sessionStorage).setItem(LS_SESSION, JSON.stringify(s));
-    } catch (e) { }
-  }
-  function clearSession() { try { localStorage.removeItem(LS_SESSION); sessionStorage.removeItem(LS_SESSION); } catch (e) { } }
-  async function restoreSession(s) {
-    var u = (state.usersDoc.users || []).filter(function (x) { return x.id === s.uid; })[0];
-    if (!u || !state.usersDoc.vault) return false;           // account was removed
-    try { await enterAccount(u, b64ToBuf(s.k)); return true; } catch (e) { return false; }
-  }
-  async function login(email, pw, remember) {
-    var id = await emailId(email);
-    var u = (state.usersDoc.users || []).filter(function (x) { return x.id === id; })[0];
-    if (!u) throw new Error('bad');
-    var inner;
-    try { inner = await unseal(await passwordKey(pw, b64ToBuf(u.salt), u.iter || PBKDF2_ITER), u); }
-    catch (e) { throw new Error('bad'); }
-    await enterAccount(u, b64ToBuf(inner.k));
-    saveSession({ uid: u.id, k: inner.k }, remember);
-  }
-  async function saveUsersDoc(doc, message) {
-    var cur = await GH.getFile(USERS_PATH).catch(function (e) { if (e.status === 404) return { sha: null }; throw e; });
-    await GH.putFile(USERS_PATH, utf8ToB64(JSON.stringify(doc, null, 2) + '\n'), message, cur.sha);
-    state.usersDoc = doc;
-  }
-  function vaultCfg() { return { token: GH.cfg.token, owner: GH.cfg.owner, repo: GH.cfg.repo, branch: GH.cfg.branch || '', path: GH.cfg.path || 'content.json' }; }
-  async function wrapForPassword(k, pw) {
-    var salt = crypto.getRandomValues(new Uint8Array(16));
-    var box = await seal(await passwordKey(pw, salt, PBKDF2_ITER), { k: bufToB64(k) });
-    return { salt: bufToB64(salt), iter: PBKDF2_ITER, iv: box.iv, data: box.data };
-  }
-  async function createUser(name, email, pw, role) {
-    var doc = clone(state.usersDoc); doc.users = doc.users || [];
-    var k = state.auth.k;
-    if (!k) {
-      if (doc.vault && doc.users.length) throw new Error('nokey');
-      k = crypto.getRandomValues(new Uint8Array(32));
-      doc.vault = null;
-    }
-    if (!doc.vault) doc.vault = await seal(await rawKey(k), vaultCfg());
-    var id = await emailId(email);
-    if (doc.users.some(function (u) { return u.id === id; })) throw new Error('exists');
-    doc.users.push(Object.assign({ id: id, name: name, role: role, created: new Date().toISOString().slice(0, 10) }, await wrapForPassword(k, pw)));
-    await saveUsersDoc(doc, 'Add admin panel user');
-    state.auth.k = k;
-  }
-  function randomPassword() {
-    var abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', out = '';
-    var r = crypto.getRandomValues(new Uint32Array(14));
-    for (var i = 0; i < r.length; i++) out += abc[r[i] % abc.length];
-    return out;
-  }
-
-  /* ---------- users page ---------- */
-  PAGES.users = { title: 'المستخدمين وتسجيل الدخول', desc: 'حسابات بالإيميل وكلمة المرور للعميل أو أي حد بيعدّل الموقع — من غير ما يحتاج GitHub.', custom: true };
-  function renderUsersPage(ed) {
-    var doc = state.usersDoc, users = doc.users || [], a = state.auth;
-    var noKey = !a.k && doc.vault && users.length;
-
-    var list = h('div', { class: 'card' }, h('div', { class: 'card-title' }, 'الحسابات', h('small', { text: users.length + ' حساب' })));
-    if (!users.length) list.appendChild(h('div', { class: 'empty', text: 'لسه مفيش حسابات — اعمل أول حساب من تحت.' }));
-    users.forEach(function (u) {
-      var me = a.uid === u.id;
-      list.appendChild(h('div', { class: 'user-row' },
-        h('span', { class: 'avatar', text: (u.name || '?').trim().charAt(0) }),
-        h('div', { class: 'grow' }, h('b', { text: u.name }), me ? h('span', { class: 'badge', style: 'margin-inline-start:6px', text: 'أنت' }) : null,
-          h('small', { text: (u.created ? 'اتعمل في ' + u.created : '') })),
-        h('span', { class: 'badge' + (u.role === 'owner' ? ' owner' : ''), text: u.role === 'owner' ? 'مسؤول' : 'محرر' }),
-        me ? null : h('button', { type: 'button', class: 'btn sm danger', onClick: async function () {
-          if (!confirm('حذف حساب «' + u.name + '»؟ مش هيقدر يدخل اللوحة تاني.')) return;
-          try {
-            var d2 = clone(state.usersDoc); d2.users = d2.users.filter(function (x) { return x.id !== u.id; });
-            if (!d2.users.length) d2.vault = null;
-            await saveUsersDoc(d2, 'Remove admin panel user');
-            toast('تم حذف الحساب', 'ok'); renderEditor();
-          } catch (e) { toast('فشل الحذف: ' + ghErrorText(e), 'err', 7000); }
-        } }, 'حذف')));
-    });
-    ed.appendChild(list);
-
-    if (noKey) {
-      ed.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-title', text: 'إدارة الحسابات' }),
-        h('div', { class: 'note', text: 'انت داخل بالـ GitHub Token. عشان تضيف حسابات جديدة أو تجدد مفتاح الربط، ادخل بحساب «مسؤول». لو مفيش حد عنده حساب مسؤول، تقدر تعمل إعادة ضبط — ده هيمسح كل الحسابات الحالية وتبدأ من جديد.' }),
-        h('div', { class: 'row-actions' }, h('button', { type: 'button', class: 'btn danger', onClick: async function () {
-          if (!confirm('مسح كل الحسابات الحالية والبدء من جديد؟')) return;
-          try { await saveUsersDoc(emptyUsers(), 'Reset admin panel users'); toast('تم مسح الحسابات — اعمل حسابات جديدة دلوقتي', 'ok'); renderEditor(); }
-          catch (e) { toast('فشل: ' + ghErrorText(e), 'err', 7000); }
-        } }, 'إعادة ضبط الحسابات'))));
+    if (hp.get('access_token') && hp.get('type') === 'recovery') {
+      history.replaceState(null, '', location.pathname + location.search);
+      setSession({ access_token: hp.get('access_token'), refresh_token: hp.get('refresh_token'), expires_in: hp.get('expires_in') }, true);
+      $('#loginLoading').hidden = true;
+      openPasswordDialog(true);
       return;
     }
 
-    // add user
-    var fName = h('input', { type: 'text', placeholder: 'مثال: أحمد — مدير التسويق' });
-    var fEmail = h('input', { type: 'email', dir: 'ltr', placeholder: 'name@example.com' });
-    var fPw = h('input', { type: 'text', dir: 'ltr', value: randomPassword() });
-    var fRole = h('select', null, h('option', { value: 'editor', text: 'محرر — يعدّل المحتوى وينشر' }), h('option', { value: 'owner', text: 'مسؤول — يعدّل وكمان يدير الحسابات' }));
-    if (!users.length) fRole.value = 'owner';
-    var result = h('div');
-    var addBtn = h('button', { type: 'button', class: 'btn primary', onClick: async function () {
-      var name = fName.value.trim(), email = fEmail.value.trim(), pw = fPw.value;
-      if (!name) return toast('اكتب الاسم', 'err');
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('الإيميل مش صحيح', 'err');
-      if (pw.length < 10) return toast('كلمة المرور لازم تكون 10 حروف على الأقل', 'err');
-      addBtn.disabled = true; addBtn.textContent = 'جارٍ الإنشاء…';
-      try {
-        await createUser(name, email, pw, fRole.value);
-        var link = new URL('./', location.href).href;
-        var text = 'لوحة تحكم موقع PEAK VISION\nالرابط: ' + link + '\nالإيميل: ' + email + '\nكلمة المرور: ' + pw;
-        renderEditor();
-        var box = $('#newUserResult');
-        if (box) box.replaceChildren(h('div', { class: 'share-box' },
-          h('b', { text: '✓ تم إنشاء الحساب — ابعت البيانات دي لـ ' + name + ':' }), h('pre', { text: text }),
-          h('button', { type: 'button', class: 'btn sm', onClick: function () { navigator.clipboard.writeText(text).then(function () { toast('تم النسخ', 'ok'); }); } }, 'نسخ البيانات'),
-          h('div', { class: 'hint', style: 'margin-top:6px', text: 'الحساب هيشتغل بعد دقيقة أو اتنين (لحد ما الموقع يتحدّث). احفظ كلمة المرور دلوقتي — مش هتظهر تاني.' })));
-      } catch (e) {
-        addBtn.disabled = false; addBtn.textContent = 'إنشاء الحساب';
-        toast(e.message === 'exists' ? 'الإيميل ده عليه حساب بالفعل' : e.message === 'nokey' ? 'لازم تدخل بحساب مسؤول' : 'فشل إنشاء الحساب: ' + ghErrorText(e), 'err', 7000);
-      }
-    } }, 'إنشاء الحساب');
-    ed.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-title', text: 'إضافة حساب جديد' }),
-      h('div', { class: 'fields' },
-        h('div', { class: 'field' }, h('label', { text: 'الاسم' }), fName),
-        h('div', { class: 'field' }, h('label', { text: 'البريد الإلكتروني' }), fEmail),
-        h('div', { class: 'field' }, h('label', { text: 'كلمة المرور' }), fPw,
-          h('div', { class: 'hint' }, 'اتعملت تلقائي — تقدر تغيرها (10 حروف على الأقل). ', h('a', { href: '#', onClick: function (e) { e.preventDefault(); fPw.value = randomPassword(); } }, 'توليد واحدة تانية'))),
-        h('div', { class: 'field' }, h('label', { text: 'الصلاحية' }), fRole)),
-      a.mode === 'token' && !users.length ? h('div', { class: 'note', style: 'margin-top:12px', text: 'نصيحة: اعمل لنفسك حساب «مسؤول» كمان، عشان تقدر بعدين تضيف حسابات وتجدد مفتاح الربط من غير الـ Token.' }) : null,
-      h('div', { class: 'row-actions' }, addBtn),
-      h('div', { id: 'newUserResult' }, result)));
-
-    // rotate token (needs the master key)
-    if (a.k && doc.vault) {
-      var fTok = h('input', { type: 'password', dir: 'ltr', placeholder: 'github_pat_…' });
-      var rotBtn = h('button', { type: 'button', class: 'btn', onClick: async function () {
-        var tok = fTok.value.trim();
-        if (!tok) return toast('الصق الـ Token الجديد', 'err');
-        rotBtn.disabled = true;
-        var old = GH.cfg;
-        GH.cfg = Object.assign({}, old, { token: tok });
-        try {
-          var r = await GH.api(GH.repoPath());
-          if (!r.permissions || !r.permissions.push) throw Object.assign(new Error('no push'), { status: 403 });
-          var d2 = clone(state.usersDoc);
-          d2.vault = await seal(await rawKey(a.k), vaultCfg());
-          await saveUsersDoc(d2, 'Update admin panel access key');
-          fTok.value = '';
-          toast('✓ تم تحديث مفتاح الربط لكل الحسابات', 'ok');
-        } catch (e) { GH.cfg = old; toast('فشل: ' + ghErrorText(e), 'err', 7000); }
-        rotBtn.disabled = false;
-      } }, 'تحديث المفتاح');
-      ed.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-title', text: 'مفتاح الربط بـ GitHub' }),
-        h('p', { class: 'muted', text: 'كل الحسابات بتنشر من خلال GitHub Token واحد متشفّر. لو صلاحيته خلصت أو عايز تغيره، الصق Token جديد هنا وكل الحسابات هتكمل تشتغل عادي.' }),
-        h('div', { class: 'fields', style: 'margin-top:10px' }, h('div', { class: 'field full' }, fTok)),
-        h('div', { class: 'row-actions' }, rotBtn)));
+    var s = loadStoredSession();
+    if (s) {
+      state.session = s;
+      try { await ensureFreshSession(); await checkAdmin(); await startPanel(); return; }
+      catch (e) { clearSession(); if (e.code === 'not_admin') return showLogin('✕ ' + errText(e)); }
     }
+    showLogin();
   }
 
-  // change own password
-  $('#pwForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var p1 = $('#pwNew').value, p2 = $('#pwNew2').value, msg = $('#pwMsg');
-    if (p1.length < 10) { msg.textContent = 'كلمة المرور لازم تكون 10 حروف على الأقل'; msg.className = 'dlg-msg err'; return; }
-    if (p1 !== p2) { msg.textContent = 'الكلمتين مش زي بعض'; msg.className = 'dlg-msg err'; return; }
-    msg.textContent = 'جارٍ الحفظ…'; msg.className = 'dlg-msg';
-    try {
-      var d2 = clone(state.usersDoc);
-      var u = d2.users.filter(function (x) { return x.id === state.auth.uid; })[0];
-      Object.assign(u, await wrapForPassword(state.auth.k, p1));
-      await saveUsersDoc(d2, 'Change admin panel password');
-      msg.textContent = '✓ تم تغيير كلمة المرور'; msg.className = 'dlg-msg ok';
-      setTimeout(function () { $('#pwDialog').close(); }, 900);
-    } catch (err) { msg.textContent = '✕ ' + ghErrorText(err); msg.className = 'dlg-msg err'; }
-  });
-  $('#pwCancel').addEventListener('click', function () { $('#pwDialog').close(); });
-
-  /* ---------- login screen ---------- */
-  function showLogin() {
-    $('#login').hidden = false;
-    $('#loginLoading').hidden = true;
-    var has = (state.usersDoc.users || []).length > 0;
-    $('#loginFields').hidden = !has;
-    $('#loginEmpty').hidden = has;
-    if (has) setTimeout(function () { $('#loginEmail').focus(); }, 50);
-  }
-  $('#loginForm').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var msg = $('#loginMsg'), btn = $('#loginBtn');
-    msg.textContent = 'جارٍ التحقق…'; msg.className = 'dlg-msg'; btn.disabled = true;
-    try {
-      await login($('#loginEmail').value, $('#loginPassword').value, $('#loginRemember').checked);
-      msg.textContent = '';
-      await afterAuth();
-    } catch (err) {
-      msg.textContent = err.message === 'bad' ? '✕ الإيميل أو كلمة المرور غير صحيحة' : '✕ حصل خطأ: ' + (err.message || err);
-      msg.className = 'dlg-msg err';
-    } finally { btn.disabled = false; }
-  });
-  $('#devLogin').addEventListener('click', openGhDialog);
-  $$('[data-eye]').forEach(function (b) {
-    b.addEventListener('click', function () { var i = $('#' + b.getAttribute('data-eye')); i.type = i.type === 'password' ? 'text' : 'password'; });
-  });
-  function applyAuthUi() {
-    var a = state.auth;
-    $('#usersNav').hidden = !isOwner();
-    $('#actPassword').hidden = a.mode !== 'account';
-    $('#actGithub').hidden = a.mode !== 'token';
-    $('#who').replaceChildren('👤 ', h('b', { text: a.name }));
-  }
-
-  /* ============ boot ============ */
-  async function boot() {
-    GH.load();
-    state.usersDoc = await loadUsers();
-    var s = loadSession();
-    if (s && !(await restoreSession(s))) clearSession();
-    if (!state.auth && GH.connected()) state.auth = { mode: 'token', name: 'المطوّر', role: 'owner', k: null };
-    if (!state.auth) { showLogin(); return; }
-    await afterAuth();
-  }
-
-  async function afterAuth() {
+  async function startPanel() {
     if (state.booted) return;
+    $('#loginLoading').hidden = false;
+    $('#loginFields').hidden = true;
+    try {
+      var f = await fetchPublished();
+      var published = normalize(f.content);
+      state.publishedStr = f.fromDb ? serialize(published) : '';
+      state.publishedAt = f.updatedAt;
+      state.content = published;
+      if (!f.fromDb) toast('أول مرة: اضغط «نشر التغييرات» عشان المحتوى يتحفظ في قاعدة البيانات.', 'ok', 9000);
+    } catch (e) {
+      showLogin('✕ تعذّر تحميل محتوى الموقع: ' + errText(e));
+      return;
+    }
     state.booted = true;
     $('#login').hidden = true;
-    applyAuthUi();
-    if (uiPrefs.page && PAGES[uiPrefs.page] && (uiPrefs.page !== 'users' || isOwner())) state.page = uiPrefs.page;
+    $('#who').replaceChildren('👤 ', h('b', { text: state.session.email }));
+    if (uiPrefs.page && PAGES[uiPrefs.page]) state.page = uiPrefs.page;
 
     // icons: reuse the site's own SVG sprite so the admin shows exactly what the site shows
     try {
@@ -1448,20 +1269,8 @@
     } catch (e) { }
 
     try {
-      var f = await fetchPublished();
-      var published = normalize(JSON.parse(f.text));
-      state.publishedStr = serialize(published);
-      state.sha = f.sha;
-      state.content = published;
-    } catch (e) {
-      updateStatus('تعذّر تحميل المحتوى', 'dirty');
-      $('#editor').replaceChildren(h('div', { class: 'card' }, h('b', { text: 'تعذّر تحميل محتوى الموقع' }), h('p', { class: 'muted', text: e.status ? ghErrorText(e) : e.message })));
-      return;
-    }
-
-    try {
       var d = JSON.parse(localStorage.getItem(LS_DRAFT) || 'null');
-      if (d && d.content && serialize(normalize(d.content)) !== state.publishedStr) {
+      if (d && d.content && serialize(normalize(d.content)) !== serialize(state.content)) {
         state.content = normalize(d.content);
         toast('تم استرجاع تعديلاتك غير المنشورة من آخر مرة', 'ok', 6000);
       }
