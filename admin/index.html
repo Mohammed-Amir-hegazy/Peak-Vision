@@ -30,10 +30,10 @@
       </label>
       <label class="check"><input type="checkbox" id="loginRemember" checked> تذكّرني على هذا الجهاز</label>
       <button type="submit" class="btn primary login-btn" id="loginBtn">دخول</button>
-      <div class="dlg-msg" id="loginMsg"></div>
+      <button type="button" class="login-dev" id="forgotLink">نسيت كلمة المرور؟</button>
     </div>
-    <div class="login-empty" id="loginEmpty" hidden>لسه مفيش حسابات دخول. المسؤول عن الموقع يدخل الأول بالـ GitHub Token ويعمل الحسابات من صفحة «المستخدمين».</div>
-    <button type="button" class="login-dev" id="devLogin">دخول المطوّر (GitHub Token)</button>
+    <div class="dlg-msg" id="loginMsg"></div>
+    <div class="login-empty" id="loginSetup" hidden>لوحة التحكم لسه مش متوصّلة بقاعدة البيانات.<br>حط بيانات Supabase في الملف <code>assets/config.js</code> (الخطوات في README).</div>
   </form>
 </div>
 
@@ -52,10 +52,10 @@
       <div class="menu" id="moreMenu" hidden>
         <button data-act="export">⬇ تنزيل نسخة (content.json)</button>
         <button data-act="import">⬆ استيراد نسخة</button>
+        <button data-act="history">🕘 النسخ السابقة (استرجاع)</button>
         <button data-act="discard">✕ إلغاء كل التعديلات غير المنشورة</button>
         <button data-act="reload">⟳ إعادة تحميل المحتوى المنشور</button>
-        <button data-act="password" id="actPassword" hidden>🔑 تغيير كلمة المرور</button>
-        <button data-act="github" id="actGithub" hidden>⚙ إعدادات الربط بـ GitHub</button>
+        <button data-act="password">🔑 تغيير كلمة المرور</button>
         <button data-act="logout">⎋ تسجيل الخروج</button>
       </div>
     </div>
@@ -69,7 +69,6 @@
       <div class="side-title">عام</div>
       <button class="side-item" data-page="settings"><span class="si-ico">⚙</span>الإعدادات والألوان</button>
       <button class="side-item" data-page="header"><span class="si-ico">☰</span>الهيدر والقائمة</button>
-      <button class="side-item" data-page="users" id="usersNav" hidden><span class="si-ico">👤</span>المستخدمين وتسجيل الدخول</button>
     </div>
     <div class="side-group">
       <div class="side-title">أقسام الصفحة <small>اسحب لتغيير الترتيب</small></div>
@@ -106,41 +105,20 @@
   </section>
 </div>
 
-<!-- GitHub connection dialog -->
-<dialog id="ghDialog">
-  <form method="dialog" class="dlg" id="ghForm">
-    <h3>ربط لوحة التحكم بالموقع (GitHub)</h3>
-    <p class="muted">الموقع محفوظ على GitHub، ولوحة التحكم بتنشر التعديلات مباشرة عليه. محتاج <b>Token</b> مرة واحدة بس على كل جهاز.</p>
-    <details class="howto">
-      <summary>إزاي أعمل Token؟ (دقيقة واحدة)</summary>
-      <ol>
-        <li>افتح <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">صفحة إنشاء Token</a>.</li>
-        <li>اكتب أي اسم، واختار مدة الصلاحية.</li>
-        <li>في <b>Repository access</b> اختار <b>Only select repositories</b> واختار مستودع الموقع.</li>
-        <li>في <b>Permissions ← Repository permissions</b> خلي <b>Contents</b> = <b>Read and write</b>.</li>
-        <li>اضغط <b>Generate token</b> وانسخه والصقه هنا.</li>
-      </ol>
-    </details>
-    <div class="grid2">
-      <label>صاحب المستودع (Owner)<input id="ghOwner" dir="ltr" required></label>
-      <label>اسم المستودع (Repo)<input id="ghRepo" dir="ltr" required></label>
-      <label>الفرع (Branch)<input id="ghBranch" dir="ltr" placeholder="تلقائي"></label>
-      <label>مسار ملف المحتوى<input id="ghPath" dir="ltr" value="content.json"></label>
-    </div>
-    <label>Token<input id="ghToken" type="password" dir="ltr" autocomplete="off" placeholder="github_pat_…"></label>
-    <label class="check"><input type="checkbox" id="ghRemember" checked> تذكّرني على هذا الجهاز</label>
-    <div class="dlg-msg" id="ghMsg"></div>
-    <div class="dlg-actions">
-      <button type="button" class="btn ghost" id="ghSkip">رجوع</button>
-      <button type="submit" class="btn primary" id="ghSave">اختبار وحفظ</button>
-    </div>
-  </form>
+<!-- Version history -->
+<dialog id="historyDialog">
+  <div class="dlg">
+    <h3>النسخ السابقة</h3>
+    <p class="muted">كل مرة بتنشر، النسخة اللي قبلها بتتحفظ هنا تلقائي (آخر 50 نسخة). اختار نسخة عشان تحمّلها في اللوحة، وبعدين اضغط «نشر» لو عايز ترجّعها.</p>
+    <div id="historyList" class="history-list"></div>
+    <div class="dlg-actions"><button type="button" class="btn ghost" id="historyClose">إغلاق</button></div>
+  </div>
 </dialog>
 
 <!-- Change password -->
 <dialog id="pwDialog">
   <form method="dialog" class="dlg" id="pwForm">
-    <h3>تغيير كلمة المرور</h3>
+    <h3 id="pwTitle">تغيير كلمة المرور</h3>
     <label>كلمة المرور الجديدة (10 حروف على الأقل)<input type="password" id="pwNew" dir="ltr" autocomplete="new-password" required minlength="10"></label>
     <label>اكتبها تاني للتأكيد<input type="password" id="pwNew2" dir="ltr" autocomplete="new-password" required minlength="10"></label>
     <div class="dlg-msg" id="pwMsg"></div>
@@ -160,6 +138,7 @@
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 <div class="toasts" id="toasts"></div>
 
+<script src="../assets/config.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

@@ -213,6 +213,8 @@ dialog::backdrop{background:rgba(0,0,0,.65);backdrop-filter:blur(3px)}
 .note{border:1px solid rgba(240,177,61,.35);background:rgba(240,177,61,.06);color:var(--dim);border-radius:10px;padding:10px 12px;line-height:1.9;font-size:13px}
 .row-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
+.history-list{max-height:55vh;overflow:auto}
+
 /* toasts */
 .toasts{position:fixed;bottom:18px;left:18px;display:flex;flex-direction:column;gap:8px;z-index:200}
 .toast{background:var(--panel-3);border:1px solid var(--line-2);padding:10px 14px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);max-width:360px;line-height:1.6;animation:tin .2s ease}

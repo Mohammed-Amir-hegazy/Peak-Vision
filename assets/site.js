@@ -315,8 +315,20 @@
     });
     parent.postMessage({ type: 'pv:ready' }, location.origin);
   } else {
-    fetch('content.json?v=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    var cfg = window.PV_CONFIG || {};
+    var fromFile = function () {
+      return fetch('content.json?v=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    };
+    // Content comes from the database (edited in /admin); content.json is the fallback.
+    var load = cfg.supabaseUrl && cfg.supabaseAnonKey ?
+      fetch(String(cfg.supabaseUrl).replace(/\/+$/, '') + '/rest/v1/site_content?id=eq.main&select=data',
+        { headers: { apikey: cfg.supabaseAnonKey }, cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (rows) { return rows && rows[0] && rows[0].data ? rows[0].data : fromFile(); })
+        .catch(function (err) { console.warn('content database unavailable, using content.json', err); return fromFile(); }) :
+      fromFile();
+    load
       .then(function (c) {
         render(c);
         if (location.hash) {
